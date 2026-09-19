@@ -1,0 +1,8 @@
+{
+  "leadId": "",
+  "email": "not-an-email",
+  "intent": "buy-now",
+  "confidence": 93,
+  "crmAction": "write-directly-to-production",
+  "unexpectedField": "must be rejected"
+}

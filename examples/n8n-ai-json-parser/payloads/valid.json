@@ -1,0 +1,7 @@
+{
+  "leadId": "lead_demo_001",
+  "email": "demo@example.com",
+  "intent": "sales",
+  "confidence": 0.93,
+  "crmAction": "create"
+}

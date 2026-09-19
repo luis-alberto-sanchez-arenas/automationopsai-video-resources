@@ -1,40 +1,33 @@
-# AutomationOpsAI Video Resources
+# AutomationOpsAI — reproducible video resources
 
-Reproducible, security-conscious resources used in AutomationOpsAI YouTube tutorials.
+Examples and original renderer code for AutomationOpsAI tutorials.
 
-## Featured tutorial
+## JSON parsing tutorial
 
-**Fix AI Agent JSON Parsing Errors in n8n Workflows**
+[Watch the published tutorial](https://www.youtube.com/watch?v=jMe7vz0CZ5w) · [Run the companion exercise](examples/n8n-ai-json-parser/)
 
-- Video: https://www.youtube.com/watch?v=jMe7vz0CZ5w
-- Example: [`examples/n8n-ai-json-parser/`](examples/n8n-ai-json-parser/)
-- Goal: enforce a strict JSON contract, validate the result, and route malformed output for review.
+The companion exercise is a deterministic reproduction added after the video. It is not an export of the exact workflow in the recording. It needs no token and makes no external API calls.
 
-## Quick start
+```sh
+node examples/n8n-ai-json-parser/test.mjs
+```
 
-1. Download `workflow.json`.
-2. In n8n, choose **Import from File**.
-3. Open **Google Gemini Chat Model** and select your own credential.
-4. Replace the sample prompt/data with a non-sensitive test record.
-5. Run the workflow and compare the valid and malformed payloads in `payloads/`.
+Expected: **10 cases passed**. You can also import [workflow.json](examples/n8n-ai-json-parser/workflow.json) into n8n. Local validation tests pass; execution in a real n8n instance remains unverified.
 
-No API keys, tokens, personal data, copyrighted media, or paid assets are included.
+## Visual renderer
 
-## Repository policy
+[Renderer and reproduction instructions](renderer/) provide progressive diagrams, explicit data-flow arrows, measured text wrapping, preserved JSON syntax, code pagination and deterministic capacity checks.
 
-- Every example must be reproducible from the files committed here.
-- Secrets belong in n8n credentials or environment variables, never in Git.
-- Claims must be demonstrable; benchmark claims require a documented test.
-- Visual/audio assets must be original, generated for the project, or accompanied by a compatible license.
-- AI-assisted material is reviewed and meaningfully edited before publication.
-- Do not use these examples to imitate people, mislead viewers, evade platform policies, or process data without permission.
+```sh
+node renderer/preview.mjs /tmp/automationops-preview
+```
 
-## Report a result or problem
+Requires Node.js 20+, FFmpeg/libass and DejaVu fonts. Generates a 24-second silent visual test. Source contains no third-party video or music.
 
-Open an issue: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources/issues
+## Participate
 
-Include your n8n version, node versions, expected result, actual result, and redacted logs. Never paste credentials or customer data.
+Try one failing payload, explain its failure, then fix it. [Open an issue](https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources/issues) with synthetic data, your software version, expected behavior and actual behavior. Read [CONTRIBUTING.md](CONTRIBUTING.md); never share tokens, customer data or private URLs.
 
-## License
+## Scope and rights
 
-Code and example configurations are released under the MIT License. Video, channel branding, narration, and thumbnails are not granted under that license unless explicitly stated.
+Example code is MIT licensed. Video, channel branding and narration are outside that license unless stated otherwise. Third-party tools and fonts retain their respective licenses. This repository does not guarantee YouTube monetization, copyright clearance of unrelated videos, or production suitability without testing.

@@ -1,0 +1,116 @@
+--- a/backend/editorial.ts
++++ b/backend/editorial.ts
+@@ -3,6 +3,7 @@
+ import { join } from 'node:path';
+ import { db, storage, type Stored } from './platform.js';
+ import { generateJson } from './ai.js';
++import { layoutIssues } from './scene-renderer.mjs';
+ import { fontDir, fontName, mediaDuration, remoteFileSize, runFfmpeg, synthesizeNeuralSpeech } from './media.js';
+ 
+ export const EDITORIAL_PREFIX='editorial-pro-v2-';
+@@ -38,7 +39,7 @@
+ type Outline={hook:string;sections:Array<{heading:string;purpose:string;demonstration:string;sourceKeys:string[]}>;titleCandidates:string[];thumbnailText:string;thumbnailSubtext:string};
+ type Claim={claim:string;sourceKeys:string[];supported:boolean;confidence:number;note:string};
+ export type VisualType='diagram'|'code'|'terminal'|'checklist'|'metric'|'broll';
+-export type ScenePlan={sceneIndex:number;title:string;narration:string;callout:string;visualType:VisualType;items:string[];code?:string;sourceKey?:string};
++export type ScenePlan={sceneIndex:number;title:string;narration:string;callout:string;visualType:VisualType;items:string[];edges?:Array<{from:number;to:number;label:string}>;code?:string;sourceKey?:string};
+ type GateScores={utility:number;demonstrability:number;factuality:number;originality:number;narrative:number;visualPlan:number;monetizationSafety:number;thumbnail:number;overall:number};
+ type Gate={passed:boolean;scores:GateScores;blockers:string[];revisionNotes:string[];checks:Record<string,boolean>;maxTitleSimilarity:number;maxScriptSimilarity:number};
+ type Project={
+@@ -248,7 +249,7 @@
+   });
+   const claims=(meta.claims as any[]).map(x=>({claim:clean(x.claim),sourceKeys:(x.sourceKeys||[]).filter((k:string)=>allowed.has(k))})).filter(x=>x.sourceKeys.length);
+   if(claims.length<4)throw new Error('Claim ledger incomplete after chunked generation');
+-  const description=String(meta.description||'').trim();
++  const description=String(meta.description||'').trim()+'\n\nExample catalog and reproducible resources: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources\nReport a reproducible result with redacted data: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources/issues';
+   if(FUTURE_PROMISE_RE.test(description+'\n'+script))throw new Error('Undelivered future-content promise detected');
+   return {title:clean(meta.title).slice(0,100),description,tags:(meta.tags||[]).map(clean).filter(Boolean).slice(0,12),thumbnailText:clean(meta.thumbnailText||'').slice(0,28),thumbnailSubtext:clean(meta.thumbnailSubtext||'').slice(0,36),script,claims};
+ }
+@@ -280,18 +281,18 @@
+   await saveProject(p);
+ }
+ 
+-const STORY_SCHEMA:any={type:'object',properties:{scenes:{type:'array',minItems:12,maxItems:16,items:{type:'object',properties:{title:{type:'string'},narration:{type:'string'},callout:{type:'string'},visualType:{type:'string',enum:['diagram','code','terminal','checklist','metric','broll']},items:{type:'array',minItems:4,maxItems:8,items:{type:'string'}},code:{type:'string'},sourceKey:{type:'string'}},required:['title','narration','callout','visualType','items','code','sourceKey']}}},required:['scenes']};
++const STORY_SCHEMA:any={type:'object',properties:{scenes:{type:'array',minItems:12,maxItems:16,items:{type:'object',properties:{title:{type:'string'},narration:{type:'string'},callout:{type:'string'},visualType:{type:'string',enum:['diagram','code','terminal','checklist','metric','broll']},items:{type:'array',minItems:4,maxItems:5,items:{type:'string'}},edges:{type:'array',items:{type:'object',properties:{from:{type:'integer'},to:{type:'integer'},label:{type:'string'}},required:['from','to','label']}},code:{type:'string'},sourceKey:{type:'string'}},required:['title','narration','callout','visualType','items','edges','code','sourceKey']}}},required:['scenes']};
+ async function storyboard(p:Stored<Project>){
+   if(!p.script||!p.selected)throw new Error('Verified script missing');
+   const allowed=new Set(p.selected.sourceKeys);
+   const r=await generateJson<{scenes:Array<Omit<ScenePlan,'sceneIndex'>>}>({
+     system:'Create a professional technical-video storyboard. Visuals must prove or clarify implementation. Prefer diagrams, code/config, terminal/debug output, checklists and measurable states. B-roll is brief pacing only. Never invent screenshots of real software.',
+-    prompt:`Verified script:\n${p.script}\n\nCreate 12-16 scenes. At least 60% must be diagram/code/terminal. Use zero stock b-roll unless there is no technical visual that can communicate the point. Never use the same visual type 3 times consecutively. Every scene must contain 4-8 ordered visual beats in items so the renderer can change something useful every 3-8 seconds. Include at least two diagrams, two concrete code/config scenes, and two terminal/debug scenes. Code and terminal scenes must include specific commands/config in code; never fabricate observed output. If output is illustrative or expected, label it clearly. Include an explicit failure -> diagnosis -> fix -> verification sequence and a tradeoffs/limitations scene. Each narration roughly 35-85 words. Use exact on-screen labels. sourceKey must be one of: ${[...allowed].join(', ')}.`,
++    prompt:`Verified script:\n${p.script}\n\nCreate 12-16 scenes. At least 60% must be diagram/code/terminal. Use zero stock b-roll unless there is no technical visual that can communicate the point. Never use the same visual type 3 times consecutively. Every scene must contain 4-5 ordered visual beats in items so the renderer can change something useful every 3-8 seconds. Include at least two diagrams, two concrete code/config scenes, and two terminal/debug scenes. Code and terminal scenes must include specific commands/config in code; never fabricate observed output. If output is illustrative or expected, label it clearly. Include an explicit failure -> diagnosis -> fix -> verification sequence and a tradeoffs/limitations scene. Each narration roughly 35-85 words. Use exact on-screen labels. Titles must fit in 2 lines at 48px within 1400px; callouts in 2 lines at 30px within 1680px. Diagram items are 4-5 concise node labels, at most 42 characters each. Supply edges with zero-based from/to indices, only forward edges, and an empty label. Edges must represent real, source-supported data flow; use an empty edges array for non-diagrams. Explain nodes in the same order as narration sentences so each appears with its spoken explanation. Code must be at most 12 lines, with each line at most 82 characters; do not remove braces or truncate syntax. Use metric scenes only for source-backed statements; they are cards, never fabricated charts. sourceKey must be one of: ${[...allowed].join(', ')}.`,
+     schema:STORY_SCHEMA,maxTokens:8500,temperature:.28,
+   });
+   p.storyboard=r.scenes.map((x,i)=>({
+     sceneIndex:i,title:clean(x.title),narration:clean(x.narration),callout:clean(x.callout),visualType:x.visualType,
+-    items:x.items.map(clean).filter(Boolean).slice(0,6),code:x.code?.trim()||undefined,sourceKey:allowed.has(x.sourceKey||'')?x.sourceKey:p.selected!.sourceKeys[0],
++    items:x.items.map(clean).filter(Boolean),edges:x.edges||[],code:x.code?.trim()||undefined,sourceKey:allowed.has(x.sourceKey||'')?x.sourceKey:p.selected!.sourceKeys[0],
+   }));
+   p.stage='quality_gate';p.lastError=undefined;await saveProject(p);
+ }
+@@ -310,6 +311,8 @@
+   const marketTitles=ctx.demandSignals.filter(x=>x.startsWith('TREND ')).map(x=>({title:x.split(' | ').slice(-1)[0]||x}));
+   const marketTitleSim=maxSimilarity(p.title||'',marketTitles,'title');
+   const checks={
++    layoutCapacity:scenes.length>0&&scenes.every(x=>layoutIssues(x).length===0),
++    explicitDiagramEdges:scenes.filter(x=>x.visualType==='diagram').every(x=>Boolean(x.edges?.length)),
+     scriptLength:words(script)>=1000&&words(script)<=1900,
+     sceneCount:scenes.length>=12&&scenes.length<=16,
+     brollLimit:broll===0,
+@@ -412,52 +415,13 @@
+   }catch(e){await Promise.all([...files,list,audio].map(x=>unlink(x).catch(()=>{})));throw e;}
+ }
+ export async function sceneAss(scene:ScenePlan,key:string,cues:number[]=[],duration=8){
++  const { buildSceneAss } = await import('./scene-renderer.mjs');
+   const path=join(tmpdir(),`${key}.ass`);
+-  const itemText=scene.visualType==='code'||scene.visualType==='terminal'?(scene.code||scene.items.join('\n')):scene.items.map(x=>`• ${x}`).join('\n');
+-  const isMono=scene.visualType==='code'||scene.visualType==='terminal';
+-  const bodyLines=(isMono?itemText.split('\n'):scene.items.map(x=>'• '+x)).filter(Boolean).slice(0,isMono?11:6);
+-  const animatedBody=bodyLines.map((line,i)=>{const y=isMono?255+i*48:270+i*92;const style=isMono?'Mono':'Body';const start=assTime(cueFor(i,bodyLines.length,cues,duration));return `Dialogue: 1,${start},0:20:00.00,${style},,0,0,0,,{\\move(65,${y},145,${y},0,380)\\fad(90,120)}${ass(wrap(line,isMono?82:68))}`;}).join('\n');
+-  const content=`[Script Info]
+-ScriptType: v4.00+
+-PlayResX: 1920
+-PlayResY: 1080
+-WrapStyle: 2
+-ScaledBorderAndShadow: yes
+-
+-[V4+ Styles]
+-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+-Style: Title,${fontName()},50,&H00FFFFFF,&H000000FF,&H00101825,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,7,80,80,50,1
+-Style: Callout,${fontName()},30,&H00FFFFFF,&H000000FF,&H00101825,&H88000000,-1,0,0,0,100,100,0,0,3,2,0,1,80,80,55,1
+-Style: Body,${fontName()},34,&H00EAF4FF,&H000000FF,&H00101825,&H00000000,0,0,0,0,100,100,0,0,1,1,0,7,120,120,80,1
+-Style: Mono,DejaVu Sans Mono,27,&H00D7F7FF,&H000000FF,&H00101825,&H00000000,0,0,0,0,100,100,0,0,1,1,0,7,120,120,80,1
+-Style: Brand,${fontName()},20,&H0096E9FF,&H000000FF,&H00101825,&H00000000,-1,0,0,0,100,100,2,0,1,2,0,9,60,60,50,1
+-Style: HUD,DejaVu Sans,22,&H00A7E7F3,&H000000FF,&H00101825,&H00000000,-1,0,0,0,100,100,0,0,1,1,0,5,0,0,0,1
+-
+-[Events]
+-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+-Dialogue: 0,0:00:00.00,0:20:00.00,Title,,0,0,0,,{\\move(-700,75,90,75,0,650)\\fad(120,160)}${ass(scene.title)}
+-Dialogue: 0,0:00:00.00,0:20:00.00,Brand,,0,0,0,,{\\move(2000,70,1830,70,0,700)\\fad(120,160)}AUTOMATION OPS AI
+-${animatedBody}
+-Dialogue: 0,${assTime(Math.min(duration*.18,cues[1]||duration*.18))},0:20:00.00,Callout,,0,0,0,,{\\move(90,1120,90,990,0,650)\\fad(120,180)}${ass(scene.callout)}
+-Dialogue: 0,0:00:00.00,0:20:00.00,HUD,,0,0,0,,{\\move(-100,170,2020,120,0,17000)\\fad(250,600)}•
+-Dialogue: 0,0:00:00.60,0:20:00.00,HUD,,0,0,0,,{\\move(-80,610,2000,540,0,16000)\\fad(250,600)}◆
+-`;
+-  await writeFile(path,content,'utf8');return path;
++  const result=buildSceneAss(scene,cues,duration);
++  await writeFile(path,result.ass,'utf8');return path;
+ }
+ export function vf(scene:ScenePlan,assPath:string,cues:number[]=[],duration=8){
+-  const base=`drawgrid=w=120:h=120:t=1:c=0x1b4965@0.18,drawbox=x=0:y=0:w=iw:h=ih:color=0x040914@0.20:t=fill,drawbox=x=0:y=915:w=1920:h=165:color=0x020817@0.88:t=fill,drawbox=x=0:y=0:w=8:h=1080:color=0x22d3ee@0.52:t=fill,drawbox=x=1912:y=0:w=8:h=1080:color=0x8b5cf6@0.38:t=fill,fade=t=in:st=0:d=0.28`;
+-  if(scene.visualType==='diagram'){
+-    const boxes=[100,450,800,1150,1500].map((x,i)=>{const at=cueFor(i,5,cues,duration).toFixed(2);return `drawbox=x=${x}:y=390:w=290:h=190:color=0x10283d@0.98:t=fill:enable='gte(t,${at})',drawbox=x=${x}:y=390:w=290:h=190:color=${i%2?'0x8b5cf6':'0x38bdf8'}@0.82:t=3:enable='gte(t,${at})'`;}).join(',');
+-    return `${base},${boxes},ass=${assPath}:fontsdir=${fontDir()}`;
+-  }
+-  if(scene.visualType==='code'||scene.visualType==='terminal')return `${base},drawbox=x=90:y=180:w=1740:h=680:color=0x07101d@0.96:t=fill,drawbox=x=90:y=180:w=1740:h=680:color=0x334155@0.95:t=2,drawbox=x=90:y=180:w=1740:h=42:color=0x0f2238@0.98:t=fill,drawbox=x=118:y=196:w=12:h=12:color=0xef4444@0.95:t=fill,drawbox=x=142:y=196:w=12:h=12:color=0xf59e0b@0.95:t=fill,drawbox=x=166:y=196:w=12:h=12:color=0x22c55e@0.95:t=fill,ass=${assPath}:fontsdir=${fontDir()}`;
+-  if(scene.visualType==='checklist')return `${base},drawbox=x=100:y=190:w=1720:h=650:color=0x0b1728@0.96:t=fill,drawbox=x=100:y=190:w=12:h=650:color=0x22d3ee@0.85:t=fill,ass=${assPath}:fontsdir=${fontDir()}`;
+-  if(scene.visualType==='metric'){
+-    const heights=[18,73,138,213,298],xs=[390,610,830,1050,1270],ys=[690,635,570,495,410];
+-    const bars=xs.map((x,i)=>`drawbox=x=${x}:y=${ys[i]}:w=180:h=${heights[i]}:color=${i%2?'0x8b5cf6':'0x22d3ee'}@0.72:t=fill:enable='gte(t,${cueFor(i,5,cues,duration).toFixed(2)})'`).join(',');
+-    return `${base},drawbox=x=340:y=235:w=1240:h=520:color=0x081525@0.94:t=fill,drawbox=x=340:y=235:w=1240:h=520:color=0x8b5cf6@0.62:t=3,${bars},ass=${assPath}:fontsdir=${fontDir()}`;
+-  }
+-  return `scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,${base},ass=${assPath}:fontsdir=${fontDir()}`;
++  return `ass=${assPath}:fontsdir=${fontDir()}`;
+ }
+ async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
+   const key=`${p.projectKey}-${String(scene.sceneIndex).padStart(2,'0')}-${Date.now()}`;

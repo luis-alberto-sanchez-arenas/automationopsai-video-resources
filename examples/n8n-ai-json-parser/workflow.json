@@ -1,0 +1,71 @@
+{
+  "name": "AutomationOpsAI - JSON contract reproduction (no credentials)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Run sample",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\"json\": {\"raw\": \"{\\\"leadId\\\": \\\"lead_demo_001\\\", \\\"email\\\": \\\"demo@example.com\\\", \\\"intent\\\": \\\"sales\\\", \\\"confidence\\\": 0.93, \\\"crmAction\\\": \\\"create\\\"}\"}}, {\"json\": {\"raw\": \"{\\\"leadId\\\": \\\"\\\", \\\"email\\\": \\\"not-an-email\\\", \\\"intent\\\": \\\"buy-now\\\", \\\"confidence\\\": 93, \\\"crmAction\\\": \\\"write-directly-to-production\\\", \\\"unexpectedField\\\": \\\"must be rejected\\\"}\"}}];"
+      },
+      "id": "fixtures",
+      "name": "Synthetic model outputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function validate(value) {\n  const errors=[];\n  if(!value||typeof value!=='object'||Array.isArray(value)) return {valid:false,errors:['Expected a JSON object']};\n  const keys=['leadId','email','intent','confidence','crmAction'];\n  for(const k of keys) if(!Object.hasOwn(value,k))errors.push(`Missing field: ${k}`);\n  for(const k of Object.keys(value)) if(!keys.includes(k))errors.push(`Unexpected field: ${k}`);\n  if(typeof value.leadId!=='string'||!value.leadId.trim())errors.push('leadId must be nonempty');\n  if(typeof value.email!=='string'||! /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.email))errors.push('Invalid email shape');\n  if(!['sales','support','unknown'].includes(value.intent))errors.push('Invalid intent');\n  if(typeof value.confidence!=='number'||!Number.isFinite(value.confidence)||value.confidence<0||value.confidence>1)errors.push('confidence must be a number in [0,1]');\n  if(!['create','review','reject'].includes(value.crmAction))errors.push('Invalid crmAction');\n  return errors.length?{valid:false,errors}:{valid:true,data:value};\n}\nfunction parseAndValidate(raw) {\n  let value=raw;\n  if(typeof raw==='string') {try {value=JSON.parse(raw);}catch {return {valid:false,errors:['Malformed JSON']};}}\n  return validate(value);\n}\n\nreturn $input.all().map(item => { const result=parseAndValidate(item.json.raw);return {json:{...result,route:result.valid?'accepted':'review'}}; });\n"
+      },
+      "id": "validate",
+      "name": "Parse and validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Run sample": {
+      "main": [
+        [
+          {
+            "node": "Synthetic model outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthetic model outputs": {
+      "main": [
+        [
+          {
+            "node": "Parse and validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
