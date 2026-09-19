@@ -1,0 +1,138 @@
+[
+  {
+    "visualType": "diagram",
+    "title": "Valid JSON can still break your workflow",
+    "callout": "Parsing checks syntax. Validation checks the contract.",
+    "items": [
+      "Model output",
+      "Parse JSON",
+      "Validate fields",
+      "Accept or review"
+    ],
+    "beats": [
+      "An AI model can return perfectly valid JSON and still give you data that your workflow must reject. In this short build, we will reproduce that failure without an API key.",
+      "First, parse the response. This only tells you whether the text follows JSON syntax. It does not tell you whether the values are useful or safe to store.",
+      "Next, validate the fields. We will check required keys, unexpected keys, allowed actions, and a numeric range before any downstream action.",
+      "Finally, separate accepted results from results that need review. The repository includes the code, test cases, and an n8n import file so you can try the same exercise."
+    ],
+    "narration": "An AI model can return perfectly valid JSON and still give you data that your workflow must reject. In this short build, we will reproduce that failure without an API key. First, parse the response. This only tells you whether the text follows JSON syntax. It does not tell you whether the values are useful or safe to store. Next, validate the fields. We will check required keys, unexpected keys, allowed actions, and a numeric range before any downstream action. Finally, separate accepted results from results that need review. The repository includes the code, test cases, and an n8n import file so you can try the same exercise.",
+    "edges": [
+      {
+        "from": 0,
+        "to": 1,
+        "label": ""
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "label": ""
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "label": ""
+      }
+    ],
+    "sceneIndex": 0
+  },
+  {
+    "visualType": "code",
+    "title": "Start with a small, explicit contract",
+    "callout": "Synthetic input \u00b7 no customer data or credentials",
+    "items": [],
+    "beats": [
+      "This synthetic lead is our passing example. It contains exactly five fields, starting with a nonempty lead identifier and a basic email shape.",
+      "The intent must be sales, support, or unknown. Free text such as buy now is outside this particular contract, even though it is a valid string.",
+      "Confidence must be a number between zero and one. The value shown here is point nine three. A string containing that number is rejected.",
+      "The requested CRM action is restricted to create, review, or reject. This exercise does not connect to a CRM, so running it cannot change customer records."
+    ],
+    "narration": "This synthetic lead is our passing example. It contains exactly five fields, starting with a nonempty lead identifier and a basic email shape. The intent must be sales, support, or unknown. Free text such as buy now is outside this particular contract, even though it is a valid string. Confidence must be a number between zero and one. The value shown here is point nine three. A string containing that number is rejected. The requested CRM action is restricted to create, review, or reject. This exercise does not connect to a CRM, so running it cannot change customer records.",
+    "code": "{\n  \"leadId\": \"lead_demo_001\",\n  \"email\": \"demo@example.com\",\n  \"intent\": \"sales\",\n  \"confidence\": 0.93,\n  \"crmAction\": \"create\"\n}\n",
+    "sceneIndex": 1
+  },
+  {
+    "visualType": "code",
+    "title": "Reject the value before the side effect",
+    "callout": "This check is an excerpt; the repository contains the full validator.",
+    "items": [],
+    "beats": [
+      "Here is the range check from the validator. Start with the type check, because a numeric string should not slip through as a number.",
+      "Next, require a finite number. This also protects callers that pass JavaScript values directly rather than parsed JSON.",
+      "Then check the lower and upper limits. Confidence equal to ninety three fails; zero and one are valid boundary cases.",
+      "The function collects errors and returns a result. It never guesses a corrected value. Quietly converting ninety three to point nine three would hide an upstream contract failure."
+    ],
+    "narration": "Here is the range check from the validator. Start with the type check, because a numeric string should not slip through as a number. Next, require a finite number. This also protects callers that pass JavaScript values directly rather than parsed JSON. Then check the lower and upper limits. Confidence equal to ninety three fails; zero and one are valid boundary cases. The function collects errors and returns a result. It never guesses a corrected value. Quietly converting ninety three to point nine three would hide an upstream contract failure.",
+    "code": "if (typeof value.confidence !== \"number\" ||\n    !Number.isFinite(value.confidence) ||\n    value.confidence < 0 ||\n    value.confidence > 1) {\n  errors.push(\"confidence must be a number in [0,1]\");\n}\n\nreturn errors.length\n  ? { valid: false, errors }\n  : { valid: true, data: value };",
+    "sceneIndex": 2
+  },
+  {
+    "visualType": "terminal",
+    "title": "Run the tests, including failure cases",
+    "callout": "Captured test output from this build \u00b7 not a fabricated terminal",
+    "items": [],
+    "beats": [
+      "Now run the test script from the repository. The terminal shows the actual output captured while building this video.",
+      "The passing object succeeds, while invalid contract values and malformed JSON fail validation. Arrays and null are rejected because the contract requires an object.",
+      "The suite also checks numeric strings, extra keys, missing keys, and both numeric boundaries. A happy path alone would miss most of these mistakes.",
+      "All ten cases passed in this run. That establishes the behavior of this small validator. It does not prove that your entire automation, your model, or your external systems are correct."
+    ],
+    "narration": "Now run the test script from the repository. The terminal shows the actual output captured while building this video. The passing object succeeds, while invalid contract values and malformed JSON fail validation. Arrays and null are rejected because the contract requires an object. The suite also checks numeric strings, extra keys, missing keys, and both numeric boundaries. A happy path alone would miss most of these mistakes. All ten cases passed in this run. That establishes the behavior of this small validator. It does not prove that your entire automation, your model, or your external systems are correct.",
+    "code": "__ACTUAL_TEST_OUTPUT__",
+    "sceneIndex": 3
+  },
+  {
+    "visualType": "diagram",
+    "title": "Try the same boundary inside n8n",
+    "callout": "Import file supplied \u00b7 full execution in n8n is not yet verified",
+    "items": [
+      "Manual trigger",
+      "Synthetic outputs",
+      "Code validation",
+      "Route field"
+    ],
+    "beats": [
+      "The supplied n8n file starts with a manual trigger, so importing it does not activate a public webhook or a schedule.",
+      "The next node supplies two synthetic model outputs: one valid and one deliberately invalid. There is no model call and no credential to configure for this exercise.",
+      "The Code node runs the same validation logic. Its JavaScript has been tested locally, but this build has not verified import and execution in a live n8n instance.",
+      "The result contains a route field, accepted or review. Add your own IF or Switch branches before connecting a CRM. When adding real AI output, map it into the raw input field and configure the structured output parser with the supplied schema."
+    ],
+    "narration": "The supplied n8n file starts with a manual trigger, so importing it does not activate a public webhook or a schedule. The next node supplies two synthetic model outputs: one valid and one deliberately invalid. There is no model call and no credential to configure for this exercise. The Code node runs the same validation logic. Its JavaScript has been tested locally, but this build has not verified import and execution in a live n8n instance. The result contains a route field, accepted or review. Add your own IF or Switch branches before connecting a CRM. When adding real AI output, map it into the raw input field and configure the structured output parser with the supplied schema.",
+    "edges": [
+      {
+        "from": 0,
+        "to": 1,
+        "label": ""
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "label": ""
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "label": ""
+      }
+    ],
+    "sceneIndex": 4
+  },
+  {
+    "visualType": "checklist",
+    "title": "One useful challenge before you leave",
+    "callout": "Code and workflow: repository linked in the description",
+    "items": [
+      "Add one failing payload",
+      "Explain the violated rule",
+      "Fix it and rerun the tests",
+      "Share a synthetic reproduction"
+    ],
+    "beats": [
+      "Your challenge is to add one failing payload. Try a missing email, an extra field, or a confidence value outside the allowed range.",
+      "Before fixing it, explain which rule it violates. That makes the test useful documentation instead of a screenshot that merely says something failed.",
+      "Correct the input and rerun the suite. Remember that an email shape is not proof of deliverability, and model confidence is not a calibrated probability.",
+      "The description links to the public repository. If you find a problem, open an issue with your software version and a synthetic reproduction. Never include tokens or customer data. The goal is a boundary you can inspect, test, and improve."
+    ],
+    "narration": "Your challenge is to add one failing payload. Try a missing email, an extra field, or a confidence value outside the allowed range. Before fixing it, explain which rule it violates. That makes the test useful documentation instead of a screenshot that merely says something failed. Correct the input and rerun the suite. Remember that an email shape is not proof of deliverability, and model confidence is not a calibrated probability. The description links to the public repository. If you find a problem, open an issue with your software version and a synthetic reproduction. Never include tokens or customer data. The goal is a boundary you can inspect, test, and improve.",
+    "sceneIndex": 5
+  }
+]
