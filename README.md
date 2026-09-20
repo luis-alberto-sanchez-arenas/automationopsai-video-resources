@@ -31,3 +31,13 @@ Try one failing payload, explain its failure, then fix it. [Open an issue](https
 ## Scope and rights
 
 Example code is MIT licensed. Video, channel branding and narration are outside that license unless stated otherwise. Third-party tools and fonts retain their respective licenses. This repository does not guarantee YouTube monetization, copyright clearance of unrelated videos, or production suitability without testing.
+
+
+## Production system
+
+- Free-first production and monetization playbook: [docs/production-playbook.md](docs/production-playbook.md)
+- Deterministic technical QA: [tools/video_qa.py](tools/video_qa.py)
+- Safe-layout vertical renderer: [tools/shorts_factory.py](tools/shorts_factory.py)
+- Idempotent unlisted publisher: [tools/youtube-publisher/upload.mjs](tools/youtube-publisher/upload.mjs)
+
+The JSON-validation example includes an editorial Shorts plan and reviewed English captions.
