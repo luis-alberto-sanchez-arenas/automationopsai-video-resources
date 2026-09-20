@@ -259,7 +259,10 @@ async function main() {
     fetchBytes(process.env.THUMBNAIL_URL, 'Thumbnail'),
     accessToken(),
   ]);
-  if (video.bytes.length < 2_000_000) throw new Error('Video integrity check failed');
+  const minimumVideoBytes = Number(process.env.MIN_VIDEO_BYTES || 500_000);
+  if (video.bytes.length < minimumVideoBytes) {
+    throw new Error(`Video integrity check failed: ${video.bytes.length} < ${minimumVideoBytes}`);
+  }
   if (thumb.bytes.length < 20_000) throw new Error('Thumbnail integrity check failed');
 
   const priorVideoId = await findExistingOnYouTube(access);
