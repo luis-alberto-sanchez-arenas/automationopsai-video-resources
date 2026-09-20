@@ -1,0 +1,25 @@
+{
+  "shorts": [
+    {
+      "id": "short-01-valid-json-can-fail",
+      "start": 0,
+      "duration": 48.5,
+      "hook": "Valid JSON can still break your workflow",
+      "takeaway": "Parsing checks syntax. Validation checks the contract."
+    },
+    {
+      "id": "short-02-reject-before-side-effect",
+      "start": 93.072,
+      "duration": 39.88,
+      "hook": "Reject bad AI output before the side effect",
+      "takeaway": "Route invalid data to review—not to production."
+    },
+    {
+      "id": "short-03-test-the-failures",
+      "start": 132.96,
+      "duration": 45.12,
+      "hook": "A validator is only as good as its failure tests",
+      "takeaway": "Test malformed JSON, missing keys and boundaries."
+    }
+  ]
+}
