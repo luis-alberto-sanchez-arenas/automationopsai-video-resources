@@ -75,6 +75,25 @@ async function findExisting() {
   return result.rows[0]?.record || null;
 }
 
+async function findExistingOnYouTube(access) {
+  const channelResponse = await fetch(
+    'https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true',
+    { headers: { authorization: `Bearer ${access}` } },
+  );
+  const channelData = await channelResponse.json();
+  if (!channelResponse.ok) throw new Error(`Channel lookup failed: HTTP ${channelResponse.status}`);
+  const uploads = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploads) return null;
+  const itemsResponse = await fetch(
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50`,
+    { headers: { authorization: `Bearer ${access}` } },
+  );
+  const itemsData = await itemsResponse.json();
+  if (!itemsResponse.ok) throw new Error(`Uploads lookup failed: HTTP ${itemsResponse.status}`);
+  const match = (itemsData.items || []).find(item => item.snippet?.title === process.env.VIDEO_TITLE);
+  return match?.contentDetails?.videoId || null;
+}
+
 async function fetchBytes(url, label) {
   const response = await fetch(url, { redirect: 'follow' });
   if (!response.ok) throw new Error(`${label} download failed: HTTP ${response.status}`);
@@ -203,6 +222,14 @@ async function main() {
   ]);
   if (video.bytes.length < 2_000_000) throw new Error('Video integrity check failed');
   if (thumb.bytes.length < 20_000) throw new Error('Thumbnail integrity check failed');
+
+  const priorVideoId = await findExistingOnYouTube(access);
+  if (priorVideoId) {
+    const thumbnailStatus = await setThumbnail(priorVideoId, access, thumb.bytes, thumb.type);
+    const url = await saveJob(priorVideoId, video.bytes.length, thumbnailStatus);
+    console.log(`RECOVERED_EXISTING_UPLOAD ${url}`);
+    return;
+  }
 
   const session = await startUpload(access, video.bytes.length);
   const videoId = await uploadVideo(session, access, video.bytes);
