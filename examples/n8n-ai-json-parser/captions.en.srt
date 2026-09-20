@@ -1,0 +1,95 @@
+1
+00:00:00,000 --> 00:00:12,408
+An AI model can return perfectly valid JSON and still give you data that your workflow must reject. In this short build, we will reproduce that failure without an API key.
+
+2
+00:00:12,408 --> 00:00:24,312
+First, parse the response. This only tells you whether the text follows JSON syntax. It does not tell you whether the values are useful or safe to store.
+
+3
+00:00:24,312 --> 00:00:35,568
+Next, validate the fields. We will check required keys, unexpected keys, allowed actions, and a numeric range before any downstream action.
+
+4
+00:00:35,568 --> 00:00:48,456
+Finally, separate accepted results from results that need review. The repository includes the code, test cases, and an n8n import file so you can try the same exercise.
+
+5
+00:00:48,504 --> 00:00:59,136
+This synthetic lead is our passing example. It contains exactly five fields, starting with a nonempty lead identifier and a basic email shape.
+
+6
+00:00:59,136 --> 00:01:09,984
+The intent must be sales, support, or unknown. Free text such as buy now is outside this particular contract, even though it is a valid string.
+
+7
+00:01:09,984 --> 00:01:20,520
+Confidence must be a number between zero and one. The value shown here is point nine three. A string containing that number is rejected.
+
+8
+00:01:20,520 --> 00:01:33,024
+The requested CRM action is restricted to create, review, or reject. This exercise does not connect to a CRM, so running it cannot change customer records.
+
+9
+00:01:33,072 --> 00:01:41,712
+Here is the range check from the validator. Start with the type check, because a numeric string should not slip through as a number.
+
+10
+00:01:41,712 --> 00:01:51,192
+Next, require a finite number. This also protects callers that pass JavaScript values directly rather than parsed JSON.
+
+11
+00:01:51,192 --> 00:02:00,216
+Then check the lower and upper limits. Confidence equal to ninety three fails; zero and one are valid boundary cases.
+
+12
+00:02:00,216 --> 00:02:12,912
+The function collects errors and returns a result. It never guesses a corrected value. Quietly converting ninety three to point nine three would hide an upstream contract failure.
+
+13
+00:02:12,960 --> 00:02:21,432
+Now run the test script from the repository. The terminal shows the actual output captured while building this video.
+
+14
+00:02:21,432 --> 00:02:33,648
+The passing object succeeds, while invalid contract values and malformed JSON fail validation. Arrays and null are rejected because the contract requires an object.
+
+15
+00:02:33,648 --> 00:02:44,712
+The suite also checks numeric strings, extra keys, missing keys, and both numeric boundaries. A happy path alone would miss most of these mistakes.
+
+16
+00:02:44,712 --> 00:02:58,032
+All ten cases passed in this run. That establishes the behavior of this small validator. It does not prove that your entire automation, your model, or your external systems are correct.
+
+17
+00:02:58,080 --> 00:03:06,216
+The supplied n8n file starts with a manual trigger, so importing it does not activate a public webhook or a schedule.
+
+18
+00:03:06,216 --> 00:03:17,904
+The next node supplies two synthetic model outputs: one valid and one deliberately invalid. There is no model call and no credential to configure for this exercise.
+
+19
+00:03:17,904 --> 00:03:30,192
+The Code node runs the same validation logic. Its JavaScript has been tested locally, but this build has not verified import and execution in a live n8n instance.
+
+20
+00:03:30,192 --> 00:03:47,712
+The result contains a route field, accepted or review. Add your own IF or Switch branches before connecting a CRM. When adding real AI output, map it into the raw input field and configure the structured output parser with the supplied schema.
+
+21
+00:03:47,760 --> 00:03:57,648
+Your challenge is to add one failing payload. Try a missing email, an extra field, or a confidence value outside the allowed range.
+
+22
+00:03:57,648 --> 00:04:07,992
+Before fixing it, explain which rule it violates. That makes the test useful documentation instead of a screenshot that merely says something failed.
+
+23
+00:04:07,992 --> 00:04:18,792
+Correct the input and rerun the suite. Remember that an email shape is not proof of deliverability, and model confidence is not a calibrated probability.
+
+24
+00:04:18,792 --> 00:04:36,408
+The description links to the public repository. If you find a problem, open an issue with your software version and a synthetic reproduction. Never include tokens or customer data. The goal is a boundary you can inspect, test, and improve.
