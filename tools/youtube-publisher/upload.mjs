@@ -75,6 +75,43 @@ async function findExisting() {
   return result.rows[0]?.record || null;
 }
 
+async function ensureCaption(videoId, access) {
+  if (!process.env.CAPTIONS_URL || !videoId) return 'not-configured';
+  const listed = await fetch(
+    `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${encodeURIComponent(videoId)}`,
+    { headers: { authorization: `Bearer ${access}` } },
+  );
+  const listData = await listed.json();
+  if (!listed.ok) throw new Error(`Caption lookup failed: HTTP ${listed.status}`);
+  if ((listData.items || []).some(item => item.snippet?.language === 'en')) return 'already-set';
+
+  const source = await fetch(process.env.CAPTIONS_URL, { redirect: 'follow' });
+  if (!source.ok) throw new Error(`Caption download failed: HTTP ${source.status}`);
+  const srt = Buffer.from(await source.arrayBuffer());
+  const boundary = `automationopsai_${Date.now().toString(16)}`;
+  const metadata = Buffer.from(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+    JSON.stringify({ snippet: { videoId, language: 'en', name: 'English', isDraft: false } }) +
+    `\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`,
+  );
+  const closing = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const body = Buffer.concat([metadata, srt, closing]);
+  const uploaded = await fetch(
+    'https://www.googleapis.com/upload/youtube/v3/captions?part=snippet&uploadType=multipart',
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${access}`,
+        'content-type': `multipart/related; boundary=${boundary}`,
+        'content-length': String(body.length),
+      },
+      body,
+    },
+  );
+  if (!uploaded.ok) throw new Error(`Caption upload failed: HTTP ${uploaded.status} ${(await uploaded.text()).slice(0,500)}`);
+  return 'set';
+}
+
 async function findExistingOnYouTube(access) {
   const channelResponse = await fetch(
     'https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true',
@@ -211,7 +248,9 @@ async function saveJob(videoId, videoSize, thumbnailStatus) {
 async function main() {
   const existing = await findExisting();
   if (existing?.youtubeUrl) {
-    console.log(`ALREADY_PUBLISHED ${existing.youtubeUrl}`);
+    const access = await accessToken();
+    const captionStatus = await ensureCaption(existing.youtubeVideoId, access);
+    console.log(`ALREADY_PUBLISHED ${existing.youtubeUrl} captions=${captionStatus}`);
     return;
   }
 
@@ -227,7 +266,8 @@ async function main() {
   if (priorVideoId) {
     const thumbnailStatus = await setThumbnail(priorVideoId, access, thumb.bytes, thumb.type);
     const url = await saveJob(priorVideoId, video.bytes.length, thumbnailStatus);
-    console.log(`RECOVERED_EXISTING_UPLOAD ${url}`);
+    const captionStatus = await ensureCaption(priorVideoId, access);
+    console.log(`RECOVERED_EXISTING_UPLOAD ${url} captions=${captionStatus}`);
     return;
   }
 
@@ -235,7 +275,8 @@ async function main() {
   const videoId = await uploadVideo(session, access, video.bytes);
   const thumbnailStatus = await setThumbnail(videoId, access, thumb.bytes, thumb.type);
   const url = await saveJob(videoId, video.bytes.length, thumbnailStatus);
-  console.log(`PUBLISHED_UNLISTED ${url}`);
+  const captionStatus = await ensureCaption(videoId, access);
+  console.log(`PUBLISHED_UNLISTED ${url} captions=${captionStatus}`);
 }
 
 main()
