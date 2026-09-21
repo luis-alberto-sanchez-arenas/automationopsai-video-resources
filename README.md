@@ -24,6 +24,17 @@ node renderer/preview.mjs /tmp/automationops-preview
 
 Requires Node.js 20+, FFmpeg/libass and DejaVu fonts. Generates a 24-second silent visual test. Source contains no third-party video or music.
 
+## Motion-first cinematic pilot
+
+[`tools/cinematic_pilot.py`](tools/cinematic_pilot.py) renders a 1080p explainer with a moving 2.5D environment, progressive data-flow diagrams, scene transitions, an original audio-reactive guide avatar and procedurally generated music. It uses Pillow, NumPy and FFmpeg; no stock footage, music or generative-video subscription is required.
+
+```sh
+python3 tools/cinematic_pilot.py input.mp4 cinematic-pilot.mp4
+python3 tools/video_qa.py cinematic-pilot.mp4 --report cinematic-pilot-qa.json
+```
+
+The source video's first 35.568 seconds supply the narration. The renderer processes the voice, ducks procedural music under speech and targets `-16 LUFS` with a `-1 dBTP` ceiling.
+
 ## Participate
 
 Try one failing payload, explain its failure, then fix it. [Open an issue](https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources/issues) with synthetic data, your software version, expected behavior and actual behavior. Read [CONTRIBUTING.md](CONTRIBUTING.md); never share tokens, customer data or private URLs.
