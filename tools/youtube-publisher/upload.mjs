@@ -11,6 +11,11 @@ for (const key of required) {
 }
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const requestedPrivacy = (process.env.VIDEO_PRIVACY_STATUS || 'unlisted').toLowerCase();
+const privacyStatus = ['private', 'unlisted', 'public'].includes(requestedPrivacy)
+  ? requestedPrivacy
+  : 'unlisted';
+const videoLanguage = process.env.VIDEO_LANGUAGE || 'es';
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: /sslmode=require|render\.com/i.test(process.env.DATABASE_URL)
@@ -157,11 +162,11 @@ async function startUpload(access, size) {
           description: process.env.VIDEO_DESCRIPTION || '',
           tags: (process.env.VIDEO_TAGS || '').split(',').map(x => x.trim()).filter(Boolean),
           categoryId: '28',
-          defaultLanguage: 'en',
-          defaultAudioLanguage: 'en',
+          defaultLanguage: videoLanguage,
+          defaultAudioLanguage: videoLanguage,
         },
         status: {
-          privacyStatus: 'unlisted',
+          privacyStatus,
           selfDeclaredMadeForKids: false,
           containsSyntheticMedia: true,
         },
@@ -222,8 +227,8 @@ async function saveJob(videoId, videoSize, thumbnailStatus) {
     title: process.env.VIDEO_TITLE,
     description: process.env.VIDEO_DESCRIPTION || '',
     tags: (process.env.VIDEO_TAGS || '').split(',').map(x => x.trim()).filter(Boolean),
-    privacyStatus: 'unlisted',
-    targetPrivacyStatus: 'unlisted',
+    privacyStatus,
+    targetPrivacyStatus: privacyStatus,
     preparedStoragePath: 'external-reviewed-cut',
     thumbnailStoragePath: 'external-reviewed-thumbnail',
     transcript: '',
@@ -279,7 +284,7 @@ async function main() {
   const thumbnailStatus = await setThumbnail(videoId, access, thumb.bytes, thumb.type);
   const url = await saveJob(videoId, video.bytes.length, thumbnailStatus);
   const captionStatus = await ensureCaption(videoId, access);
-  console.log(`PUBLISHED_UNLISTED ${url} captions=${captionStatus}`);
+  console.log(`PUBLISHED_${privacyStatus.toUpperCase()} ${url} captions=${captionStatus}`);
 }
 
 main()
