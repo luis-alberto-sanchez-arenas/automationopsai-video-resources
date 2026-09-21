@@ -1,5 +1,6 @@
 import { createDecipheriv, createHash, randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { readFile } from 'node:fs/promises';
 
 const { Pool } = pg;
 const required = [
@@ -137,6 +138,13 @@ async function findExistingOnYouTube(access) {
 }
 
 async function fetchBytes(url, label) {
+  if (url.startsWith('/') || url.startsWith('file://')) {
+    const filePath = url.startsWith('file://') ? new URL(url) : url;
+    const bytes = await readFile(filePath);
+    const type = String(url).toLowerCase().endsWith('.mp4') ? 'video/mp4'
+      : String(url).toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    return { bytes, type };
+  }
   const response = await fetch(url, { redirect: 'follow' });
   if (!response.ok) throw new Error(`${label} download failed: HTTP ${response.status}`);
   return {
