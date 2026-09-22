@@ -5,7 +5,7 @@ import { initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
 import { advanceEditorial, getEditorialStatus } from './editorial.js';
 import {
   channelSummary,demandContext,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
-  processOnePublishStep,youtubeConnected,
+  makeJobPublic,processOnePublishStep,youtubeConnected,
 } from './youtube.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -82,6 +82,11 @@ app.get('/api/jobs',requireAdmin,async(req,res,next)=>{
     }));
     res.json({items,page,pageSize,total:filtered.length,totalPages:Math.max(1,Math.ceil(filtered.length/pageSize)),sort,direction,status});
   }catch(e){next(e);}
+});
+
+app.post('/api/jobs/:id/public',requireAdmin,async(req,res,next)=>{
+  try{res.json({ok:true,...await makeJobPublic(USER_ID,String(req.params.id))});}
+  catch(e){next(e);}
 });
 
 app.get('/api/oauth/start',requireAdmin,async(_req,res,next)=>{

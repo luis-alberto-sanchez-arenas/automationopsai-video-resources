@@ -152,6 +152,19 @@ export async function listJobs(userId:string){
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function makeJobPublic(userId:string,jobId:string){
+  const job=(await listJobs(userId)).find(x=>x.id===jobId);
+  if(!job)throw new Error('Publish job not found');
+  if(job.status!=='published'||!job.youtubeVideoId)throw new Error('Video must finish processing before it can be public');
+  if(job.thumbnailStatus!=='set')throw new Error('Thumbnail must be set before public release');
+  if(job.privacyStatus==='public')return {status:'already-public',youtubeUrl:job.youtubeUrl};
+  const access=await accessToken(userId);
+  await privacy(job.youtubeVideoId,'public',access);
+  job.privacyStatus='public';job.targetPrivacyStatus='public';job.lastError=undefined;
+  await saveJob(job);
+  return {status:'public',youtubeUrl:job.youtubeUrl};
+}
+
 async function initiate(job:PublishJob,totalBytes:number,access:string){
   const response=await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{
     method:'POST',headers:{
