@@ -1,156 +1,28 @@
 <!doctype html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>AutomationOpsAI · Creator OS</title>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutomationOpsAI · Operations Console</title>
 <style>
-:root{color-scheme:dark;--bg:#070b14;--panel:#0c1320;--panel2:#111a2b;--line:#213047;--text:#edf4ff;--muted:#8fa1bb;--cyan:#38d5ff;--green:#4de69a;--amber:#ffbf55;--red:#ff6578}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at 65% -20%,#17304c 0,transparent 35%),var(--bg);color:var(--text)}
-button,input,textarea{font:inherit}button{cursor:pointer}.shell{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;gap:18px;align-items:center;justify-content:space-between;margin-bottom:26px}.brand small{color:var(--cyan);font-weight:800;letter-spacing:.16em}.brand h1{margin:5px 0 0;font-size:clamp(27px,4vw,42px)}.brand p{margin:8px 0;color:var(--muted)}
-.panel{background:linear-gradient(180deg,rgba(17,26,43,.97),rgba(11,18,31,.97));border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 16px 45px rgba(0,0,0,.18)}
-.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.kpi{padding:14px;border:1px solid var(--line);border-radius:14px;background:#0b1220}.kpi b{display:block;font-size:24px}.kpi span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.pill{display:inline-flex;padding:6px 10px;border-radius:99px;border:1px solid var(--line);font-size:12px;font-weight:800;text-transform:uppercase}.cyan{color:var(--cyan);border-color:#1e7890;background:#0c2833}.green{color:var(--green);border-color:#216a4c;background:#0b2a20}.amber{color:var(--amber);border-color:#765522;background:#2b210f}.red{color:var(--red)}
-.btn{border:1px solid #2b7791;background:#0d3342;color:#dff9ff;padding:10px 14px;border-radius:11px;font-weight:750}.btn.secondary{border-color:var(--line);background:#101a2a}.btn:disabled{opacity:.45;cursor:not-allowed}.token{display:flex;gap:8px}.token input{flex:1;min-width:0;border:1px solid var(--line);background:#080e18;color:var(--text);padding:11px;border-radius:11px}
-.progress{height:8px;border-radius:99px;background:#172235;overflow:hidden;margin:12px 0}.progress>div{height:100%;background:linear-gradient(90deg,#26bce8,#64e7ff)}
-h2{margin:0 0 4px;font-size:18px}h3{font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin:22px 0 10px}.muted{color:var(--muted)}.next{padding:14px;border-left:3px solid var(--cyan);background:#0b1825;border-radius:8px;margin-top:12px}.jobs{display:grid;gap:9px}.job{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0a111d}.job strong{display:block}.job small{color:var(--muted)}a{color:#79e6ff}.notice{display:none;margin-bottom:14px;padding:12px;border:1px solid var(--line);border-radius:10px}.notice.show{display:block}.notice.error{border-color:#713544;color:#ffc5cd;background:#2a1118}.notice.ok{border-color:#285f4a;color:#bdf7db;background:#0d251c}
-.config{display:grid;gap:8px}.config div{display:flex;justify-content:space-between;border-bottom:1px solid #172235;padding:8px 0}.dot{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block;margin-right:7px}.dot.on{background:var(--green)}
-.fields{display:grid;gap:10px;margin-top:14px}.fields input,.fields textarea{width:100%;border:1px solid var(--line);background:#080e18;color:var(--text);padding:11px;border-radius:11px}.fields textarea{min-height:100px;resize:vertical}.fields label{font-size:12px;color:var(--muted);font-weight:700}.fields label>*{display:block;margin-top:5px}
-@media(max-width:850px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.top{align-items:flex-start;flex-direction:column}}@media(max-width:500px){.kpis{grid-template-columns:1fr}.shell{padding:20px 14px}}
-</style>
-</head>
-<body>
-<div class="shell">
-  <header class="top">
-    <div class="brand"><small>AUTOMATION OPS AI</small><h1>Creator OS</h1><p>Research → evidence → Quality Gate → render → unlisted review.</p></div>
-    <span id="connection" class="pill amber">API locked</span>
-  </header>
-
-  <div id="notice" class="notice"></div>
-
-  <section class="panel" style="margin-bottom:16px">
-    <div class="row between"><div><h2>Acceso privado</h2><div class="muted">El token se guarda sólo en este navegador.</div></div></div>
-    <div class="token" style="margin-top:12px"><input id="token" type="password" placeholder="ADMIN_TOKEN" autocomplete="off"><button class="btn" onclick="saveToken()">Guardar y conectar</button></div>
-  </section>
-
-  <div class="grid">
-    <main>
-      <section class="panel">
-        <div class="row between"><div><h2>Producción activa</h2><div id="title" class="muted">Sin expediente cargado</div></div><span id="stage" class="pill cyan">idle</span></div>
-        <div class="kpis">
-          <div class="kpi"><span>Quality Gate</span><b id="quality">—</b></div>
-          <div class="kpi"><span>Escenas</span><b id="scenes">—</b></div>
-          <div class="kpi"><span>Upload</span><b id="upload">—</b></div>
-          <div class="kpi"><span>YouTube</span><b id="yt">—</b></div>
-        </div>
-        <div class="progress"><div id="renderbar" style="width:0"></div></div>
-        <div class="next"><b>Siguiente acción</b><div id="next" class="muted" style="margin-top:4px">Cargando estado…</div></div>
-        <div class="row" style="margin-top:16px"><button id="advance" class="btn" onclick="advance()">Ejecutar checkpoint</button><button id="publish" class="btn secondary" onclick="publishStep()">Procesar upload</button><button class="btn secondary" onclick="refresh()">Actualizar</button></div>
-      </section>
-
-      <section class="panel" style="margin-top:16px">
-        <h2>Publicaciones</h2><div class="muted">Expedientes editoriales y másteres auditados. El destino inicial es no listado.</div>
-        <div id="jobs" class="jobs" style="margin-top:14px"><div class="muted">Sin datos.</div></div>
-      </section>
-      <section class="panel" style="margin-top:16px">
-        <h2>Máster auditado</h2><div class="muted">Carga con SHA-256 obligatorio. Siempre se publica primero como privado y termina como no listado.</div>
-        <div class="fields">
-          <label>Clave<input id="reviewKey" value="json-validation-motion-v4" pattern="[a-z0-9-]{8,80}"></label>
-          <label>Título<input id="reviewTitle" value="Fix AI Agent JSON Parsing Errors in n8n (10 Real Tests)"></label>
-          <label>Descripción<textarea id="reviewDescription">Parsing is not validation. This reproducible demo checks malformed JSON, missing and extra keys, wrong types, and numeric boundaries before an AI workflow reaches a side effect.
-
-Code and tests: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources
-
-The n8n example uses synthetic data and no credentials. AI-assisted narration and original procedural motion graphics are disclosed. Not sponsored; no affiliate links.</textarea></label>
-          <label>Etiquetas<input id="reviewTags" value="AI automation,n8n,AI agents,JSON validation,software testing"></label>
-          <label>Video MP4<input id="reviewVideo" type="file" accept="video/mp4"></label>
-          <label>Miniatura JPG/PNG<input id="reviewThumb" type="file" accept="image/jpeg,image/png"></label>
-          <button id="reviewUpload" class="btn" onclick="uploadReviewed()">Cargar máster aprobado</button>
-        </div>
-      </section>
-    </main>
-
-    <aside>
-      <section class="panel">
-        <h2>Infraestructura</h2><div id="config" class="config" style="margin-top:10px"></div>
-        <h3>YouTube OAuth</h3>
-        <div id="channel" class="muted">No conectado.</div>
-        <button id="oauth" class="btn" style="margin-top:12px" onclick="oauth()">Autorizar YouTube</button>
-      </section>
-      <section class="panel" style="margin-top:16px">
-        <h2>Política de publicación</h2>
-        <p class="muted">TTS neural obligatorio. Quality Gate ≥92. Fact-check obligatorio. B-roll ≤15%. La publicación termina en <b>unlisted</b>; no se hace pública automáticamente.</p>
-      </section>
-    </aside>
-  </div>
-</div>
-<script>
-const $=id=>document.getElementById(id);
-let status=null;
-function adminToken(){return localStorage.getItem('automationops_admin_token')||''}
-function saveToken(){localStorage.setItem('automationops_admin_token',$('token').value.trim());refresh()}
-function notice(text,type='ok'){const n=$('notice');n.textContent=text;n.className=`notice show ${type}`;setTimeout(()=>n.className='notice',5000)}
-async function api(path,opts={}){
-  const headers={...(opts.headers||{}),'Authorization':`Bearer ${adminToken()}`};
-  if(opts.body&&!headers['content-type'])headers['content-type']='application/json';
-  const r=await fetch(path,{...opts,headers});
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
-  return data;
-}
-async function sha256(file){const b=await file.arrayBuffer();const h=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
-async function rawUpload(path,file){
-  const digest=await sha256(file);const r=await fetch(path,{method:'POST',headers:{'Authorization':`Bearer ${adminToken()}`,'content-type':file.type,'x-content-sha256':digest},body:file});
-  const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data;
-}
-async function uploadReviewed(){
-  const button=$('reviewUpload'),video=$('reviewVideo').files[0],thumb=$('reviewThumb').files[0],key=$('reviewKey').value.trim();
-  if(!video||!thumb) return notice('Selecciona video y miniatura','error');
-  try{
-    button.disabled=true;notice('Verificando y cargando video…');
-    const v=await rawUpload(`/api/reviewed/video?key=${encodeURIComponent(key)}`,video);
-    notice('Verificando y cargando miniatura…');const t=await rawUpload(`/api/reviewed/thumbnail?key=${encodeURIComponent(key)}`,thumb);
-    const tags=$('reviewTags').value.split(',').map(x=>x.trim()).filter(Boolean);
-    await api('/api/reviewed/jobs',{method:'POST',body:JSON.stringify({key,title:$('reviewTitle').value.trim(),description:$('reviewDescription').value.trim(),tags,transcript:'Burned-in English captions; reviewed master.',videoPath:v.path,thumbnailPath:t.path})});
-    notice('Máster verificado; trabajo privado creado');await refresh();
-  }catch(e){notice(e.message,'error')}finally{button.disabled=false}
-}
-function bool(v){return `<span><i class="dot ${v?'on':''}"></i>${v?'OK':'Pendiente'}</span>`}
-async function refresh(){
-  if(!adminToken()){$('connection').textContent='API locked';return}
-  try{
-    status=await api('/api/status');
-    $('connection').textContent='Control room conectado';$('connection').className='pill green';
-    const e=status.editorial||{};
-    $('stage').textContent=e.stage||'idle';$('title').textContent=e.title||e.problem||'Sin título todavía';
-    $('quality').textContent=Number.isFinite(e.qualityScore)?`${e.qualityScore}/100`:'—';
-    const rendered=e.renderedScenes||0,total=e.totalScenes||0;
-    $('scenes').textContent=total?`${rendered}/${total}`:'—';$('renderbar').style.width=total?`${Math.round(rendered/total*100)}%`:'0';
-    $('next').textContent=e.nextAction||'—';
-    const active=(status.jobs||[])[0];$('upload').textContent=active?`${active.progress||0}%`:'—';
-    $('yt').textContent=status.youtubeConnected?'Connected':'Offline';
-    $('channel').textContent=status.channel?`${status.channel.title} · ${status.channel.id}`:(status.youtubeConnected?'Autorizado':'No autorizado');
-    $('oauth').textContent=status.youtubeConnected?'Reautorizar YouTube':'Autorizar YouTube';
-    $('config').innerHTML=[
-      ['Postgres',status.config.database],['Google OAuth',status.config.google],['AI provider',status.config.ai],
-      ['Neural TTS',status.config.ttsPolicy==='neural_required'],['Public origin',Boolean(status.config.publicOrigin)]
-    ].map(([k,v])=>`<div><span>${k}</span>${bool(v)}</div>`).join('');
-    $('jobs').innerHTML=(status.jobs||[]).length?(status.jobs||[]).map(j=>`<div class="job"><strong>${j.title}</strong><small>${j.status} · ${j.progress||0}% ${j.thumbnailStatus?`· thumbnail ${j.thumbnailStatus}`:''}</small>${j.youtubeUrl?`<div><a href="${j.youtubeUrl}" target="_blank" rel="noreferrer">Abrir en YouTube</a></div>`:''}${j.lastError?`<div class="red">${j.lastError}</div>`:''}</div>`).join(''):'<div class="muted">Todavía no hay trabajos de publicación.</div>';
-  }catch(e){$('connection').textContent='API locked';$('connection').className='pill amber';notice(e.message,'error')}
-}
-async function oauth(){try{const d=await api('/api/oauth/start');location.href=d.authUrl}catch(e){notice(e.message,'error')}}
-async function advance(){try{$('advance').disabled=true;const d=await api('/api/editorial/advance',{method:'POST'});notice(`Checkpoint: ${d.status}`);await refresh()}catch(e){notice(e.message,'error')}finally{$('advance').disabled=false}}
-async function publishStep(){try{$('publish').disabled=true;const d=await api('/api/publish/now',{method:'POST'});notice(`Upload: ${d.status}`);await refresh()}catch(e){notice(e.message,'error')}finally{$('publish').disabled=false}}
-(async()=>{
-  $('token').value=adminToken();
-  const q=new URLSearchParams(location.search);
-  if(q.get('error')){notice(`Google OAuth: ${q.get('error')}`,'error');history.replaceState({},'',location.pathname)}
-  else if(q.get('code')&&q.get('state')&&adminToken()){
-    try{await api('/api/oauth/complete',{method:'POST',body:JSON.stringify({code:q.get('code'),state:q.get('state')})});notice('YouTube autorizado');history.replaceState({},'',location.pathname)}
-    catch(e){notice(e.message,'error')}
-  }
-  await refresh();setInterval(refresh,10000);
-})();
-</script>
-</body>
-</html>
+:root{color-scheme:dark;--bg:#070b12;--surface:#0d1420;--line:#223148;--text:#eef5ff;--muted:#91a3ba;--cyan:#49d7ff;--green:#5ee5a3;--amber:#ffc466;--red:#ff7183;--radius:16px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:var(--cyan)}
+.app{min-height:100vh;display:grid;grid-template-columns:250px minmax(0,1fr)}.sidebar{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);padding:26px 18px;background:#080d15}.logo{display:flex;gap:11px;align-items:center}.mark{width:38px;height:38px;border:1px solid #247896;border-radius:11px;display:grid;place-items:center;color:var(--cyan);background:#0b2430;font-weight:900}.logo b{display:block}.logo small{color:var(--muted)}.nav{display:grid;gap:7px;margin-top:34px}.nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;color:var(--muted);text-decoration:none}.nav a.active{background:#112536;color:#fff;border:1px solid #21485d}.side-status{position:absolute;left:18px;right:18px;bottom:22px;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.main{min-width:0;padding:28px 30px 60px;max-width:1500px;width:100%;margin:auto}.topbar{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:24px}.topbar h1{margin:0;font-size:28px}.topbar p{margin:5px 0 0;color:var(--muted)}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.button{border:1px solid #27728c;background:#0d3140;color:#e8fbff;padding:9px 13px;border-radius:10px;font-weight:750}.button.secondary{background:#101925;border-color:var(--line)}.button:disabled{opacity:.45;cursor:not-allowed}.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 9px;border-radius:99px;border:1px solid var(--line);font-size:12px;font-weight:800}.dot{width:8px;height:8px;border-radius:50%;background:var(--red)}.dot.on{background:var(--green)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.card,.panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:0 14px 30px rgba(0,0,0,.13)}.card{padding:16px}.card .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.07em}.card strong{display:block;font-size:27px;margin-top:5px}.card small{color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.7fr);gap:16px;margin-top:16px}.panel{padding:19px}.panel h2{font-size:17px;margin:0}.sub{color:var(--muted);margin-top:4px}.between{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.pipeline{display:grid;grid-template-columns:repeat(11,1fr);gap:0;margin:22px 0 16px;overflow:auto}.step{position:relative;padding-top:23px;text-align:center;color:#71849c;font-size:10px;min-width:68px}.step:before{content:"";position:absolute;top:6px;left:0;right:0;height:3px;background:#1b293b}.step:first-child:before{left:50%}.step:last-child:before{right:50%}.step i{position:absolute;top:0;left:50%;transform:translateX(-50%);width:15px;height:15px;border-radius:50%;background:#1c2a3d;border:3px solid var(--surface);z-index:1}.step.done{color:#bfeeda}.step.done:before,.step.done i{background:var(--green)}.step.current{color:#fff;font-weight:800}.step.current i{background:var(--cyan);box-shadow:0 0 0 5px #49d7ff20}
+.active-box{display:grid;grid-template-columns:1fr auto;gap:14px;padding:15px;border:1px solid var(--line);border-radius:13px;background:#0a111c}.active-box h3{margin:0 0 6px;font-size:16px}.meta{display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:12px}.next{margin-top:13px;padding:12px;border-left:3px solid var(--cyan);background:#0a1722;border-radius:8px}.error{color:#ffb6c0}.bar{height:7px;background:#182437;border-radius:99px;overflow:hidden;margin-top:10px}.bar span{display:block;height:100%;background:linear-gradient(90deg,#2fbbe4,#5ee5a3)}.activity{display:grid;margin-top:12px}.event{display:grid;grid-template-columns:12px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid #182436}.event:last-child{border-bottom:0}.event i{width:9px;height:9px;border-radius:50%;background:var(--cyan);margin-top:5px}.event.success i{background:var(--green)}.event.error i{background:var(--red)}.event b{display:block;font-size:13px}.event small{color:var(--muted)}
+.publications{margin-top:16px}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:16px 0 12px}.filters{display:flex;gap:8px;flex-wrap:wrap}.field{display:grid;gap:5px;color:var(--muted);font-size:11px;font-weight:750}.field input,.field select,.fields input,.fields textarea{border:1px solid var(--line);background:#080e17;color:var(--text);padding:9px 10px;border-radius:9px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{border-collapse:collapse;width:100%;min-width:780px}th,td{text-align:left;padding:12px;border-bottom:1px solid #1a2738}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:#0a111b}tbody tr:hover{background:#101a28}.title-cell{max-width:390px}.title-cell b{display:block}.title-cell small{color:var(--muted)}.status{font-size:11px;font-weight:800;text-transform:uppercase}.status.published{color:var(--green)}.status.failed{color:var(--red)}.status.uploading,.status.pending{color:var(--amber)}.pager{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--muted)}
+.infra{display:grid;margin-top:12px}.infra div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #182436}.infra div:last-child{border:0}.channel{padding:12px;border:1px solid var(--line);border-radius:11px;background:#0a111b;margin-top:12px}.token{display:flex;gap:8px;margin-top:11px}.token input{min-width:0;flex:1;border:1px solid var(--line);background:#080e17;color:var(--text);padding:9px;border-radius:9px}details{margin-top:16px}summary{cursor:pointer;font-weight:800}.fields{display:grid;gap:10px;margin-top:14px}.fields label{display:grid;gap:5px;color:var(--muted);font-size:12px;font-weight:700}.fields textarea{min-height:100px;resize:vertical}.notice{display:none;margin-bottom:14px;padding:11px 13px;border-radius:10px;border:1px solid var(--line)}.notice.show{display:block}.notice.ok{background:#0c241b;color:#c6f7df;border-color:#245e46}.notice.error{background:#2a1118;color:#ffd1d7;border-color:#743445}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}}@media(max-width:760px){.app{display:block}.sidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.nav,.side-status{display:none}.main{padding:20px 14px}.topbar{display:block}.topbar .row{margin-top:14px}.cards{grid-template-columns:1fr 1fr}.active-box{grid-template-columns:1fr}.toolbar{align-items:stretch;flex-direction:column}}@media(max-width:430px){.cards{grid-template-columns:1fr}}
+</style></head><body><div class="app">
+<aside class="sidebar"><div class="logo"><div class="mark">AO</div><div><b>AutomationOpsAI</b><small>Creator operations</small></div></div><nav class="nav"><a class="active" href="#overview">◈ Operación</a><a href="#publications">▤ Publicaciones</a><a href="#infrastructure">⌁ Infraestructura</a><a href="#reviewed">⬆ Máster auditado</a></nav><div class="side-status"><div id="connection" class="pill"><i class="dot"></i><span>API bloqueada</span></div><small id="lastRefresh" style="display:block;margin-top:8px;color:var(--muted)">Sin actualizar</small></div></aside>
+<main class="main" id="overview"><header class="topbar"><div><h1>Centro de operaciones</h1><p>Estado real del pipeline editorial, render y publicación.</p></div><div class="row"><button class="button secondary" onclick="refreshAll()">Actualizar</button><button id="advance" class="button" onclick="advance()">Ejecutar checkpoint</button></div></header><div id="notice" class="notice"></div>
+<section class="cards"><article class="card"><span class="label">Producciones</span><strong id="totalJobs">—</strong><small>registradas</small></article><article class="card"><span class="label">Publicadas</span><strong id="publishedJobs">—</strong><small>en YouTube</small></article><article class="card"><span class="label">En proceso</span><strong id="activeJobs">—</strong><small>upload o cola</small></article><article class="card"><span class="label">Incidencias</span><strong id="failedJobs">—</strong><small>requieren atención</small></article></section>
+<div class="layout"><section class="panel"><div class="between"><div><h2>Pipeline activo</h2><div id="projectKey" class="sub">Sin expediente</div></div><span id="stage" class="pill">idle</span></div><div id="pipeline" class="pipeline"></div><div class="active-box"><div><h3 id="title">Sin producción activa</h3><div class="meta"><span id="updatedAt">—</span><span id="quality">Quality —</span><span id="scenes">Escenas —</span></div><div class="bar"><span id="renderbar" style="width:0"></span></div></div><button id="publish" class="button secondary" onclick="publishStep()">Procesar upload</button></div><div class="next"><b>Siguiente acción</b><div id="next" class="sub">Esperando datos…</div><div id="pipelineError" class="error"></div></div></section><aside class="panel"><h2>Actividad reciente</h2><div class="sub">Cambios del pipeline y publicación</div><div id="activity" class="activity"><div class="sub">Sin actividad.</div></div></aside></div>
+<section id="publications" class="panel publications"><div class="between"><div><h2>Publicaciones</h2><div class="sub">Ordena, filtra y revisa el estado real de cada carga.</div></div><span id="jobCount" class="pill">0 resultados</span></div><div class="toolbar"><div class="filters"><label class="field">Estado<select id="statusFilter" onchange="jobsPage=1;loadJobs()"><option value="all">Todos</option><option value="published">Publicados</option><option value="uploading">Subiendo</option><option value="pending">Pendientes</option><option value="failed">Con error</option></select></label><label class="field">Orden<select id="sortFilter" onchange="jobsPage=1;loadJobs()"><option value="updatedAt">Última actualización</option><option value="createdAt">Fecha de creación</option><option value="title">Título</option><option value="status">Estado</option></select></label><label class="field">Dirección<select id="directionFilter" onchange="jobsPage=1;loadJobs()"><option value="desc">Descendente</option><option value="asc">Ascendente</option></select></label></div></div><div class="table-wrap"><table><thead><tr><th>Video</th><th>Estado</th><th>Progreso</th><th>Visibilidad</th><th>Actualizado</th><th>Acción</th></tr></thead><tbody id="jobs"><tr><td colspan="6" class="sub">Sin datos.</td></tr></tbody></table></div><div class="pager"><span id="pageLabel">Página 1 de 1</span><div class="row"><button id="prevPage" class="button secondary" onclick="changePage(-1)">Anterior</button><button id="nextPage" class="button secondary" onclick="changePage(1)">Siguiente</button></div></div></section>
+<div class="layout"><section id="infrastructure" class="panel"><h2>Infraestructura y acceso</h2><div id="config" class="infra"></div><div class="channel"><b>Canal YouTube</b><div id="channel" class="sub">No conectado.</div><button id="oauth" class="button secondary" style="margin-top:10px" onclick="oauth()">Autorizar YouTube</button></div><details><summary>ADMIN_TOKEN</summary><div class="token"><input id="token" type="password" placeholder="ADMIN_TOKEN" autocomplete="off"><button class="button" onclick="saveToken()">Guardar</button></div></details></section><section id="reviewed" class="panel"><h2>Máster auditado</h2><div class="sub">SHA-256 obligatorio. La salida termina no listada para revisión humana.</div><details><summary>Cargar nuevo máster</summary><div class="fields"><label>Clave<input id="reviewKey" pattern="[a-z0-9-]{8,80}"></label><label>Título<input id="reviewTitle"></label><label>Descripción<textarea id="reviewDescription"></textarea></label><label>Etiquetas<input id="reviewTags"></label><label>Video MP4<input id="reviewVideo" type="file" accept="video/mp4"></label><label>Miniatura<input id="reviewThumb" type="file" accept="image/jpeg,image/png"></label><button id="reviewUpload" class="button" onclick="uploadReviewed()">Verificar y cargar</button></div></details></section></div>
+</main></div><script>
+const $=id=>document.getElementById(id);let status=null,jobsPage=1,jobsTotalPages=1;const stages=['research','problem','outline','script','fact_review','storyboard','quality_gate','rendering','assembly','ready','published'];function adminToken(){return localStorage.getItem('automationops_admin_token')||''}function fmt(value){if(!value)return'—';return new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function notice(text,type='ok'){const n=$('notice');n.textContent=text;n.className=`notice show ${type}`;setTimeout(()=>n.className='notice',6000)}function saveToken(){localStorage.setItem('automationops_admin_token',$('token').value.trim());refreshAll()}
+async function api(path,opts={}){const headers={...(opts.headers||{}),Authorization:`Bearer ${adminToken()}`};if(opts.body&&!headers['content-type'])headers['content-type']='application/json';const r=await fetch(path,{...opts,headers});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}function stagePipeline(current){const activeIndex=stages.indexOf(current);$('pipeline').innerHTML=stages.map((name,index)=>{const state=current==='published'||index<activeIndex?'done':index===activeIndex?'current':'';return `<div class="step ${state}"><i></i>${name.replace('_',' ')}</div>`}).join('')}function setConnection(ok){$('connection').innerHTML=`<i class="dot ${ok?'on':''}"></i><span>${ok?'Conectado':'API bloqueada'}</span>`}
+async function refresh(){if(!adminToken()){setConnection(false);return}status=await api('/api/status');setConnection(true);$('lastRefresh').textContent=`Actualizado ${new Date().toLocaleTimeString('es-MX')}`;const e=status.editorial||{},s=status.summary||{};$('totalJobs').textContent=s.total??0;$('publishedJobs').textContent=s.published??0;$('activeJobs').textContent=s.active??0;$('failedJobs').textContent=s.failed??0;$('projectKey').textContent=e.projectKey||'Sin expediente';$('stage').textContent=e.stage||'idle';$('title').textContent=e.title||e.problem||'Sin producción activa';$('updatedAt').textContent=`Actualizado ${fmt(e.updatedAt)}`;$('quality').textContent=`Quality ${Number.isFinite(e.qualityScore)?e.qualityScore+'/100':'—'}`;const rendered=e.renderedScenes||0,total=e.totalScenes||0;$('scenes').textContent=`Escenas ${total?rendered+'/'+total:'—'}`;$('renderbar').style.width=total?`${Math.round(rendered/total*100)}%`:'0';$('next').textContent=e.nextAction||'—';$('pipelineError').textContent=e.lastError||((e.blockers||[]).join(' · '));stagePipeline(e.stage||'idle');$('channel').textContent=status.channel?`${status.channel.title} · ${status.channel.id}`:(status.youtubeConnected?'Autorizado':'No autorizado');$('oauth').textContent=status.youtubeConnected?'Reautorizar YouTube':'Autorizar YouTube';$('config').innerHTML=[['Postgres',status.config.database],['Google OAuth',status.config.google],['Proveedor IA',status.config.ai],['TTS neural',status.config.ttsPolicy==='neural_required'],['Origen público',Boolean(status.config.publicOrigin)]].map(([k,v])=>`<div><span>${k}</span><span class="pill"><i class="dot ${v?'on':''}"></i>${v?'Operativo':'Pendiente'}</span></div>`).join('');$('activity').innerHTML=(status.activity||[]).map(a=>`<div class="event ${esc(a.severity)}"><i></i><div><b>${esc(a.label)}</b><small>${esc(a.detail)} · ${fmt(a.at)}</small></div></div>`).join('')||'<div class="sub">Sin actividad.</div>'}
+async function loadJobs(){const q=new URLSearchParams({page:String(jobsPage),pageSize:'8',status:$('statusFilter').value,sort:$('sortFilter').value,direction:$('directionFilter').value});const data=await api(`/api/jobs?${q}`);jobsTotalPages=data.totalPages;jobsPage=Math.min(data.page,data.totalPages);$('jobCount').textContent=`${data.total} resultado${data.total===1?'':'s'}`;$('pageLabel').textContent=`Página ${jobsPage} de ${jobsTotalPages}`;$('prevPage').disabled=jobsPage<=1;$('nextPage').disabled=jobsPage>=jobsTotalPages;$('jobs').innerHTML=data.items.map(j=>`<tr><td class="title-cell"><b>${esc(j.title)}</b><small>${esc(j.automationKey)}</small>${j.lastError?`<div class="error">${esc(j.lastError)}</div>`:''}</td><td><span class="status ${esc(j.status)}">${esc(j.status)}</span></td><td>${j.progress}%${j.thumbnailStatus?` · thumb ${esc(j.thumbnailStatus)}`:''}</td><td>${esc(j.privacyStatus)} → ${esc(j.targetPrivacyStatus)}</td><td>${fmt(j.updatedAt)}</td><td>${j.youtubeUrl?`<a href="${esc(j.youtubeUrl)}" target="_blank" rel="noreferrer">Ver video</a>`:'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="sub">No hay publicaciones con este filtro.</td></tr>'}async function refreshAll(){try{await Promise.all([refresh(),loadJobs()])}catch(e){setConnection(false);notice(e.message,'error')}}function changePage(delta){jobsPage=Math.max(1,Math.min(jobsTotalPages,jobsPage+delta));loadJobs()}
+async function oauth(){try{location.href=(await api('/api/oauth/start')).authUrl}catch(e){notice(e.message,'error')}}async function advance(){try{$('advance').disabled=true;const d=await api('/api/editorial/advance',{method:'POST'});notice(`Checkpoint: ${d.status}`);await refreshAll()}catch(e){notice(e.message,'error')}finally{$('advance').disabled=false}}async function publishStep(){try{$('publish').disabled=true;const d=await api('/api/publish/now',{method:'POST'});notice(`Upload: ${d.status}`);await refreshAll()}catch(e){notice(e.message,'error')}finally{$('publish').disabled=false}}
+async function sha256(file){const b=await file.arrayBuffer(),h=await crypto.subtle.digest('SHA-256',b);return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}async function rawUpload(path,file){const r=await fetch(path,{method:'POST',headers:{Authorization:`Bearer ${adminToken()}`,'content-type':file.type,'x-content-sha256':await sha256(file)},body:file}),data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}async function uploadReviewed(){const button=$('reviewUpload'),video=$('reviewVideo').files[0],thumb=$('reviewThumb').files[0],key=$('reviewKey').value.trim();if(!video||!thumb||!key)return notice('Completa clave, video y miniatura','error');try{button.disabled=true;notice('Verificando y cargando video…');const v=await rawUpload(`/api/reviewed/video?key=${encodeURIComponent(key)}`,video);const t=await rawUpload(`/api/reviewed/thumbnail?key=${encodeURIComponent(key)}`,thumb);await api('/api/reviewed/jobs',{method:'POST',body:JSON.stringify({key,title:$('reviewTitle').value.trim(),description:$('reviewDescription').value.trim(),tags:$('reviewTags').value.split(',').map(x=>x.trim()).filter(Boolean),transcript:'Burned-in captions; reviewed master.',videoPath:v.path,thumbnailPath:t.path})});notice('Máster verificado y puesto en cola');await refreshAll()}catch(e){notice(e.message,'error')}finally{button.disabled=false}}
+(async()=>{$('token').value=adminToken();const q=new URLSearchParams(location.search);if(q.get('error')){notice(`Google OAuth: ${q.get('error')}`,'error');history.replaceState({},'',location.pathname)}else if(q.get('code')&&q.get('state')&&adminToken()){try{await api('/api/oauth/complete',{method:'POST',body:JSON.stringify({code:q.get('code'),state:q.get('state')})});notice('YouTube autorizado');history.replaceState({},'',location.pathname)}catch(e){notice(e.message,'error')}}await refreshAll();setInterval(refreshAll,15000)})();
+</script></body></html>

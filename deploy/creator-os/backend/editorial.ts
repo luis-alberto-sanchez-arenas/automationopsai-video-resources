@@ -51,7 +51,7 @@ type SceneRecord=ScenePlan&{userId:string;projectKey:string;status:'planned'|'re
 
 export type EditorialContext={demandSignals:string[];recentVideos:Array<{title:string;transcript?:string}>};
 export type PublishSpec={automationKey:string;title:string;description:string;tags:string[];transcript:string;preparedStoragePath:string;thumbnailStoragePath:string};
-export type EditorialStatus={projectKey?:string;stage:Stage|'idle'|'cooldown';title?:string;problem?:string;revision?:number;qualityScore?:number;blockers?:string[];renderedScenes?:number;totalScenes?:number;youtubeUrl?:string;nextAction:string};
+export type EditorialStatus={projectKey?:string;stage:Stage|'idle'|'cooldown';title?:string;problem?:string;revision?:number;qualityScore?:number;blockers?:string[];renderedScenes?:number;totalScenes?:number;youtubeUrl?:string;lastError?:string;createdAt?:string;updatedAt?:string;nextAction:string};
 
 function now(){return new Date().toISOString();}
 function clean(v:string){return v.replace(/\s+/g,' ').trim();}
@@ -443,7 +443,7 @@ export async function getEditorialStatus(userId:string):Promise<EditorialStatus>
   const actions:Record<string,string>={
     research:'Research official sources and current demand.',problem:'Select a concrete demonstrable problem.',outline:'Design implementation outline.',script:'Write technical script.',fact_review:'Verify material claims.',storyboard:'Create proof-oriented visual plan.',quality_gate:'Apply strict editorial Quality Gate.',revision:'Structurally revise rejected package.',rendering:'Render one neural-narrated scene.',assembly:'Assemble and verify master assets.',ready:'Approved package awaiting unlisted upload.',published:'Collect performance and wait for next editorial cycle.',rejected:'Archive and start a new concept later.'
   };
-  return {projectKey:p.projectKey,stage:cooldown?'cooldown':p.stage,title:p.title||p.selected?.workingTitle,problem:p.selected?.problem,revision:p.revision,qualityScore:p.gate?.scores.overall,blockers:p.gate?.blockers.slice(0,5),renderedScenes:scenes.filter(x=>x.status==='rendered').length,totalScenes:p.storyboard?.length,youtubeUrl:p.youtubeUrl,nextAction:cooldown?`Editorial cooldown: one long video every ${COOLDOWN_HOURS}h.`:(actions[p.stage]||'Continue pipeline.')};
+  return {projectKey:p.projectKey,stage:cooldown?'cooldown':p.stage,title:p.title||p.selected?.workingTitle,problem:p.selected?.problem,revision:p.revision,qualityScore:p.gate?.scores.overall,blockers:p.gate?.blockers.slice(0,5),renderedScenes:scenes.filter(x=>x.status==='rendered').length,totalScenes:p.storyboard?.length,youtubeUrl:p.youtubeUrl,lastError:p.lastError,createdAt:p.createdAt,updatedAt:p.updatedAt,nextAction:cooldown?`Editorial cooldown: one long video every ${COOLDOWN_HOURS}h.`:(actions[p.stage]||'Continue pipeline.')};
 }
 
 export async function markPublished(userId:string,projectKey:string,videoId:string,url:string){

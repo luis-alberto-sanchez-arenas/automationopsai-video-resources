@@ -35,9 +35,20 @@ app.get('/api/status',requireAdmin,async(_req,res,next)=>{
     const [editorial,jobs,connected,channel]=await Promise.all([
       getEditorialStatus(USER_ID),listJobs(USER_ID),youtubeConnected(USER_ID),channelSummary(USER_ID).catch(()=>null),
     ]);
+    const summary={
+      total:jobs.length,
+      published:jobs.filter(x=>x.status==='published').length,
+      active:jobs.filter(x=>['pending','uploading'].includes(x.status)).length,
+      failed:jobs.filter(x=>x.status==='failed').length,
+      shorts:jobs.filter(x=>/short/i.test(x.title)||/short/i.test(x.automationKey)).length,
+    };
+    const activity=[
+      ...(editorial.updatedAt?[{type:'editorial',label:`Pipeline ${editorial.stage}`,detail:editorial.nextAction,at:editorial.updatedAt,severity:editorial.lastError?'error':'info'}]:[]),
+      ...jobs.slice(0,8).map(x=>({type:'publication',label:x.title,detail:`${x.status} · ${x.totalBytes?Math.min(100,Math.round((x.uploadedBytes/x.totalBytes)*100)):0}%${x.thumbnailStatus?` · thumbnail ${x.thumbnailStatus}`:''}`,at:x.updatedAt,severity:x.lastError?'error':x.status==='published'?'success':'info'})),
+    ].sort((a,b)=>b.at.localeCompare(a.at)).slice(0,8);
     res.json({
       youtubeConnected:connected,channel,editorial,
-      jobs:jobs.map(x=>({id:x.id,title:x.title,status:x.status,progress:x.totalBytes?Math.min(100,Math.round((x.uploadedBytes/x.totalBytes)*100)):0,youtubeUrl:x.youtubeUrl,lastError:x.lastError,thumbnailStatus:x.thumbnailStatus,updatedAt:x.updatedAt})),
+      summary,activity,
       config:{
         google:Boolean(process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET),
         ai:Boolean(process.env.GEMINI_API_KEY||(process.env.AI_BASE_URL&&process.env.AI_API_KEY&&process.env.AI_MODEL)),
@@ -46,6 +57,30 @@ app.get('/api/status',requireAdmin,async(_req,res,next)=>{
         ttsPolicy:process.env.TTS_POLICY||'neural_required',
       }
     });
+  }catch(e){next(e);}
+});
+
+app.get('/api/jobs',requireAdmin,async(req,res,next)=>{
+  try{
+    const all=await listJobs(USER_ID);
+    const page=Math.max(1,Number.parseInt(String(req.query.page||'1'),10)||1);
+    const pageSize=Math.max(5,Math.min(25,Number.parseInt(String(req.query.pageSize||'8'),10)||8));
+    const status=String(req.query.status||'all');
+    const sort=['createdAt','updatedAt','title','status'].includes(String(req.query.sort))?String(req.query.sort):'updatedAt';
+    const direction=String(req.query.direction)==='asc'?'asc':'desc';
+    const filtered=status==='all'?all:all.filter(x=>x.status===status);
+    filtered.sort((a,b)=>{
+      const left=String((a as any)[sort]||'').toLowerCase(),right=String((b as any)[sort]||'').toLowerCase();
+      return (left<right?-1:left>right?1:0)*(direction==='asc'?1:-1);
+    });
+    const start=(page-1)*pageSize;
+    const items=filtered.slice(start,start+pageSize).map(x=>({
+      id:x.id,title:x.title,status:x.status,privacyStatus:x.privacyStatus,targetPrivacyStatus:x.targetPrivacyStatus,
+      progress:x.totalBytes?Math.min(100,Math.round((x.uploadedBytes/x.totalBytes)*100)):0,
+      youtubeUrl:x.youtubeUrl,lastError:x.lastError,thumbnailStatus:x.thumbnailStatus,
+      createdAt:x.createdAt,updatedAt:x.updatedAt,automationKey:x.automationKey,
+    }));
+    res.json({items,page,pageSize,total:filtered.length,totalPages:Math.max(1,Math.ceil(filtered.length/pageSize)),sort,direction,status});
   }catch(e){next(e);}
 });
 
