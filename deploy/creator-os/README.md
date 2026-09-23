@@ -62,6 +62,21 @@ Google OAuth must contain:
 
 The new OAuth authorization creates a fresh encrypted refresh token in the portable database. Existing AppDeploy secret values and encrypted refresh tokens cannot be extracted safely from AppDeploy and are not copied.
 
+## TikTok Direct Post
+
+The web and worker services support the official Content Posting API. Configure the same values on both services:
+
+- `TIKTOK_CLIENT_KEY`
+- `TIKTOK_CLIENT_SECRET`
+- `TIKTOK_MIRROR_ENABLED=true`
+- `TIKTOK_PRIVACY_LEVEL=PUBLIC_TO_EVERYONE`
+
+Register this exact Web redirect URI in TikTok Login Kit:
+
+`https://automationopsai-web-v2-production.up.railway.app/api/tiktok/oauth/callback/`
+
+Use `SELF_ONLY` and keep mirroring disabled while testing an unaudited client. Public Direct Post requires TikTok approval for `video.publish`; the dashboard intentionally reports the integration as pending until credentials and account authorization are present.
+
 ## AI provider
 
 Preferred starter path: Gemini API through `GEMINI_API_KEY`. The provider is configurable. An OpenAI-compatible endpoint can be used instead.
