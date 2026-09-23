@@ -1,0 +1,8 @@
+[
+  {"title":"A timeout does not mean no side effect","visualType":"diagram","items":["Agent request","API commits","Response lost","Blind retry"],"code":""},
+  {"title":"Reproduce the duplicate action","visualType":"code","items":[],"code":"first = api.create_ticket(payload)\n# response disappears\nretry = api.create_ticket(payload)\nassert first != retry\nassert len(api.effects) == 2"},
+  {"title":"Give one intention one stable key","visualType":"diagram","items":["Workflow run","Business action","Stable key","Atomic ledger"],"code":""},
+  {"title":"Run the safe retry proof","visualType":"terminal","items":[],"code":""},
+  {"title":"Make the storage boundary atomic","visualType":"checklist","items":["Unique constraint on action key","Store status and result together","Reject conflicting payload reuse","Define a retention window"],"code":""},
+  {"title":"Operate it with measurable evidence","visualType":"checklist","items":["Log attempt and action key","Distinguish CREATED from REPLAY","Alert on retry surges","Count real side effects"],"code":""}
+]
