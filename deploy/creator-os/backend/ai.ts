@@ -6,6 +6,13 @@ type GenerateOptions = {
   maxTokens?: number;
 };
 
+const providerCooldownUntil=new Map<string,number>();
+function cooling(provider:string){return (providerCooldownUntil.get(provider)||0)>Date.now();}
+function cool(provider:string,error:unknown){
+  const message=error instanceof Error?error.message:String(error);
+  if(/\b(429|503)\b|RESOURCE_EXHAUSTED|UNAVAILABLE/i.test(message))providerCooldownUntil.set(provider,Date.now()+10*60_000);
+}
+
 function parseJsonText(text:string) {
   return text.trim().replace(/^```json\s*/i,'').replace(/```$/,'').trim();
 }
@@ -101,6 +108,7 @@ export async function generateText(options:GenerateOptions) {
   const providers=[...new Set(requested)] as Array<'gemini'|'deepseek'|'kimi'|'compatible'>;
   const failures:string[]=[];
   for(const provider of providers){
+    if(cooling(provider)){failures.push(`${provider}: cooling down after quota/transient failure`);continue;}
     try{
       if(provider==='gemini'){
         if(!process.env.GEMINI_API_KEY)continue;
@@ -116,7 +124,7 @@ export async function generateText(options:GenerateOptions) {
       const prefix=provider==='compatible'?'AI':provider.toUpperCase();
       if(!process.env[`${prefix}_API_KEY`])continue;
       return await compatibleGenerate(options,provider);
-    }catch(error){failures.push(`${provider}: ${error instanceof Error?error.message:String(error)}`);}
+    }catch(error){cool(provider,error);failures.push(`${provider}: ${error instanceof Error?error.message:String(error)}`);}
   }
   throw new Error(`All configured AI providers failed: ${failures.join(' | ').slice(0,1800)}`);
 }
