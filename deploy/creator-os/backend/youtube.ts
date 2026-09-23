@@ -147,7 +147,7 @@ export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublis
   const t=new Date().toISOString();
   const record:PublishJob={
     userId,automationKey,title:spec.title.slice(0,100),description:spec.description.slice(0,5000),tags:spec.tags.slice(0,12),
-    privacyStatus:'private',targetPrivacyStatus:'unlisted',preparedStoragePath:spec.preparedStoragePath,
+    privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript.slice(0,20000),status:'pending',
     uploadedBytes:0,retryCount:0,thumbnailStatus:'pending',createdAt:t,updatedAt:t,
   };
