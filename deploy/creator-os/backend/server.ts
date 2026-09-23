@@ -38,6 +38,7 @@ app.get('/api/status',requireAdmin,async(_req,res,next)=>{
     const summary={
       total:jobs.length,
       published:jobs.filter(x=>x.status==='published').length,
+      public:jobs.filter(x=>x.status==='published'&&x.privacyStatus==='public').length,
       active:jobs.filter(x=>['pending','uploading'].includes(x.status)).length,
       failed:jobs.filter(x=>x.status==='failed').length,
       shorts:jobs.filter(x=>/short/i.test(x.title)||/short/i.test(x.automationKey)).length,
