@@ -85,8 +85,8 @@ def main() -> int:
     true_peak = float(loudness.get("input_tp", 99))
     if abs(measured - args.target_lufs) > 1.5:
         failures.append(f"integrated loudness {measured:.2f} LUFS is outside target tolerance")
-    if true_peak > -0.5:
-        failures.append(f"true peak {true_peak:.2f} dBTP is too high")
+    if true_peak > -1.0:
+        failures.append(f"true peak {true_peak:.2f} dBTP exceeds the -1.00 dBTP ceiling")
 
     if args.manifest:
         failures.extend(manifest_checks(args.manifest, int(video["width"]), int(video["height"])))
