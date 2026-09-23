@@ -1,11 +1,11 @@
 import express from 'express';
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
 import { advanceEditorial, getEditorialStatus } from './editorial.js';
 import {
   channelAnalytics,channelSummary,demandContext,engagementCommitments,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
-  makeJobPublic,processOnePublishStep,retryJob,youtubeConnected,
+  makeJobPublic,processOnePublishStep,promoteApprovedReviewedJobs,retryJob,youtubeConnected,
 } from './youtube.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -135,6 +135,14 @@ function verifiedBody(req:express.Request){
   if(!/^[a-f0-9]{64}$/.test(expected)||expected!==actual)throw new Error('Reviewed asset SHA-256 mismatch');
   return req.body as Buffer;
 }
+function requireAutomationUpload(req:express.Request,res:express.Response,next:express.NextFunction){
+  const expected=process.env.AUTOMATION_UPLOAD_TOKEN||'';
+  const provided=String(req.headers['x-automation-upload-token']||'');
+  if(!expected||provided.length!==expected.length||!timingSafeEqual(Buffer.from(provided),Buffer.from(expected))){
+    return res.status(401).json({error:'Unauthorized automation upload'});
+  }
+  next();
+}
 app.post('/api/reviewed/video',requireAdmin,express.raw({type:'video/mp4',limit:'400mb'}),async(req,res,next)=>{
   try{
     const key=reviewedKey(req.query.key),content=verifiedBody(req);
@@ -159,6 +167,44 @@ app.post('/api/reviewed/jobs',requireAdmin,async(req,res,next)=>{
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
     const job=await ensureReviewedPublishJob(USER_ID,{key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath});
     res.json({ok:true,id:job.id,status:job.status});
+  }catch(e){next(e);}
+});
+
+app.post('/api/automation-upload/video',requireAutomationUpload,express.raw({type:'video/mp4',limit:'400mb'}),async(req,res,next)=>{
+  try{
+    const key=reviewedKey(req.query.key),content=verifiedBody(req);
+    if(content.length<1_000_000)throw new Error('Reviewed video is too small');
+    const path=`reviewed/${USER_ID}/${key}/video.mp4`;
+    await storage.write([{path,content,contentType:'video/mp4'}]);res.json({ok:true,path,bytes:content.length});
+  }catch(e){next(e);}
+});
+app.post('/api/automation-upload/thumbnail',requireAutomationUpload,express.raw({type:['image/jpeg','image/png'],limit:'10mb'}),async(req,res,next)=>{
+  try{
+    const key=reviewedKey(req.query.key),content=verifiedBody(req),type=String(req.headers['content-type']||'');
+    if(content.length<10_000)throw new Error('Reviewed thumbnail is too small');
+    const ext=type==='image/png'?'png':'jpg',path=`reviewed/${USER_ID}/${key}/thumbnail.${ext}`;
+    await storage.write([{path,content,contentType:type}]);res.json({ok:true,path,bytes:content.length});
+  }catch(e){next(e);}
+});
+app.post('/api/automation-upload/jobs',requireAutomationUpload,async(req,res,next)=>{
+  try{
+    const {key,title,description,tags,transcript,videoPath,thumbnailPath}=req.body||{};
+    const cleanKey=reviewedKey(key);
+    if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
+    if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
+    const job=await ensureReviewedPublishJob(USER_ID,{key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath});
+    res.json({ok:true,id:job.id,status:job.status});
+  }catch(e){next(e);}
+});
+app.post('/api/automation-upload/process',requireAutomationUpload,async(_req,res,next)=>{
+  try{res.json({ok:true,step:await processOnePublishStep(USER_ID),promoted:await promoteApprovedReviewedJobs(USER_ID)});}
+  catch(e){next(e);}
+});
+app.get('/api/automation-upload/status',requireAutomationUpload,async(req,res,next)=>{
+  try{
+    const key=reviewedKey(req.query.key),job=(await listJobs(USER_ID)).find(x=>x.automationKey===`reviewed-${key}`);
+    if(!job)return res.status(404).json({error:'Upload job not found'});
+    res.json({id:job.id,status:job.status,privacyStatus:job.privacyStatus,youtubeUrl:job.youtubeUrl,lastError:job.lastError,uploadedBytes:job.uploadedBytes,totalBytes:job.totalBytes,thumbnailStatus:job.thumbnailStatus});
   }catch(e){next(e);}
 });
 
