@@ -410,7 +410,7 @@ def render(spec: ShortSpec, timeline: dict, directory: Path):
     output = directory / f"{spec.key}.mp4"
     subprocess.run([
         "ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(silent), "-i", str(directory / "voice.wav"),
-        "-filter:a", "loudnorm=I=-16:TP=-1:LRA=7", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(output)
+        "-filter:a", "loudnorm=I=-16:TP=-1.5:LRA=7", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(output)
     ], check=True)
     thumb_time = min(duration - .5, max(2.0, timeline["segments"][0]["end"] - .3))
     subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-ss", str(thumb_time), "-i", str(output), "-frames:v", "1", "-q:v", "2", str(directory / "thumbnail.jpg")], check=True)
