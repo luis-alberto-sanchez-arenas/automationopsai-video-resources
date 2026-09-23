@@ -15,6 +15,7 @@
 .metric{text-align:right}.metric b,.metric small{display:block}.metric small{color:var(--muted);font-size:10px;text-transform:uppercase}
 .incident{padding:11px 0;border-bottom:1px solid #182536}.incident:last-child{border-bottom:0}.incident-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.incident b{display:block}.incident p{margin:5px 0;color:#ffabb7;font-size:12px;overflow-wrap:anywhere}.incident-meta{color:var(--muted);font-size:11px}
 .analytics-note{margin-top:10px;padding:10px;border:1px solid #6a5527;border-radius:9px;background:#201a0e;color:#d9c89d;font-size:12px}
+.commitments{grid-column:1/-1}.commitment{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #182536}.commitment:last-child{border-bottom:0}.commitment b,.commitment small{display:block}.commitment small{margin-top:3px;color:var(--muted)}.commitment-state{padding:5px 8px;border:1px solid currentColor;border-radius:999px;color:var(--amber);font-size:11px;font-weight:850}.commitment-state.fulfilled{color:var(--green)}
 @media(max-width:1200px){.insights-grid{grid-template-columns:repeat(3,1fr)}.analytics-body{grid-template-columns:1fr}}
 @media(max-width:700px){.insights-head{display:block}.insights-actions{margin-top:10px}.insights-grid{grid-template-columns:1fr 1fr}.video-rank{grid-template-columns:24px minmax(0,1fr) auto}.video-rank .metric:nth-last-child(n+2){display:none}}
 @media(max-width:390px){.insights-grid{grid-template-columns:1fr}}
