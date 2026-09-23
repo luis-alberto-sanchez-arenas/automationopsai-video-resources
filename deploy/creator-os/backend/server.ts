@@ -20,6 +20,24 @@ app.disable('x-powered-by');
 app.use(express.json({limit:'2mb'}));
 app.get('/_storage',serveBlob);
 
+const TIKTOK_VERIFICATION_SIGNATURES:Record<string,string>={
+  'tiktok37RHG5KH6QhxrjEXDpWT7nse8ImBiY39.txt':'tiktok-developers-site-verification=37RHG5KH6QhxrjEXDpWT7nse8ImBiY39',
+  'tiktokJ8eLu4ROG6kx8Y54hSPkaUX1WySXcURk.txt':'tiktok-developers-site-verification=J8eLu4ROG6kx8Y54hSPkaUX1WySXcURk',
+  'tiktokiYsPHMYcVppl20rC5OeLcxsVydzB9bN9.txt':'tiktok-developers-site-verification=iYsPHMYcVppl20rC5OeLcxsVydzB9bN9',
+  'tiktokZSqHoxlwo9gmSwarqWUs8LxAbB14UoKp.txt':'tiktok-developers-site-verification=ZSqHoxlwo9gmSwarqWUs8LxAbB14UoKp',
+};
+
+// TikTok may append the downloaded verification filename to any registered
+// URL prefix (for example /privacy-policy/<file>). Serve the exact signature
+// bytes at both root and nested prefixes instead of falling through to the SPA.
+app.get(/^\/(?:.*\/)?tiktok[A-Za-z0-9]+\.txt$/, (req,res,next)=>{
+  const filename=req.path.split('/').at(-1)||'';
+  const signature=TIKTOK_VERIFICATION_SIGNATURES[filename];
+  if(!signature)return next();
+  res.set('Cache-Control','public, max-age=300');
+  res.type('text/plain').send(signature);
+});
+
 app.get('/api/_healthcheck',(_req,res)=>res.json({ok:true,service:'AutomationOpsAI',version:'portable-v1'}));
 
 app.get('/api/public/status',async(_req,res,next)=>{
