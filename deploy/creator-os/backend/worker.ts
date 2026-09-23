@@ -33,8 +33,10 @@ async function guarded(name:string,fn:()=>Promise<unknown>){
   catch(e){console.error(`worker ${name}:`,e);}
 }
 
-cron.schedule('* * * * *',()=>void guarded('editorial',editorialCycle));
-cron.schedule('*/2 * * * *',()=>void guarded('publisher',publishCycle));
+const TIMEZONE=process.env.SCHEDULE_TIMEZONE||'America/Mexico_City';
+cron.schedule('* * * * *',()=>void guarded('editorial',editorialCycle),{timezone:TIMEZONE});
+cron.schedule('* * * * *',()=>void guarded('publisher',publishCycle),{timezone:TIMEZONE});
 
-console.log('AutomationOpsAI worker started: editorial every minute, publisher every 2 minutes');
+console.log(`AutomationOpsAI worker started: editorial/publisher every minute; release timezone=${TIMEZONE}; slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
 void guarded('startup-editorial',editorialCycle);
+void guarded('startup-publisher',publishCycle);
