@@ -56,8 +56,18 @@ def main() -> int:
         failures.append("missing video stream")
     if not audio:
         failures.append("missing audio stream")
-    if video and (int(video.get("width", 0)) < args.min_width or int(video.get("height", 0)) < args.min_height):
-        failures.append("resolution below required minimum")
+    if video:
+        width = int(video.get("width", 0))
+        height = int(video.get("height", 0))
+        landscape_ok = width >= args.min_width and height >= args.min_height
+        portrait_ok = width >= args.min_height and height >= args.min_width
+        if not (landscape_ok or portrait_ok):
+            failures.append("resolution below required minimum in either orientation")
+        rate = video.get("avg_frame_rate") or video.get("r_frame_rate") or "0/1"
+        numerator, denominator = (float(value) for value in rate.split("/", 1))
+        fps = numerator / denominator if denominator else 0.0
+        if fps < 29.97:
+            failures.append(f"frame rate {fps:.3f} fps is below 30 fps")
 
     black = run(
         "ffmpeg", "-hide_banner", "-nostats", "-i", str(args.video),
@@ -98,6 +108,7 @@ def main() -> int:
         "technical": {
             "width": int(video.get("width", 0)) if video else 0,
             "height": int(video.get("height", 0)) if video else 0,
+            "fps": fps if video else 0,
             "duration": float(info["format"].get("duration", 0)),
             "integrated_lufs": measured,
             "true_peak_dbtp": true_peak,
