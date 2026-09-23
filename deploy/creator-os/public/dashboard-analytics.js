@@ -14,7 +14,7 @@
     publications.insertAdjacentHTML('beforebegin',`<section id="analytics" class="panel insights">
       <div class="insights-head"><div><h2>Rendimiento del canal</h2><div class="sub">Datos reales de YouTube; periodo predeterminado de 28 días.</div></div><div class="insights-actions"><span id="analyticsUpdated" class="pill">Sin actualizar</span><button class="button secondary small" type="button" id="analyticsRefresh">Actualizar métricas</button></div></div>
       <div id="insightCards" class="insights-grid"><div class="empty">Esperando acceso al canal…</div></div>
-      <div class="analytics-body"><div class="subpanel"><div class="subpanel-title"><h3>Videos con más vistas</h3><span id="managedTotals" class="sub"></span></div><div id="topVideos" class="empty">Sin datos.</div></div><div class="subpanel"><div class="subpanel-title"><h3>Incidencias de publicación</h3><span id="incidentCount" class="pill">0</span></div><div id="incidentList" class="empty">Sin incidencias.</div></div></div>
+      <div class="analytics-body"><div class="subpanel"><div class="subpanel-title"><h3>Videos con más vistas</h3><span id="managedTotals" class="sub"></span></div><div id="topVideos" class="empty">Sin datos.</div></div><div class="subpanel"><div class="subpanel-title"><h3>Incidencias de publicación</h3><span id="incidentCount" class="pill">0</span></div><div id="incidentList" class="empty">Sin incidencias.</div></div><div class="subpanel commitments"><div class="subpanel-title"><h3>Compromisos con la audiencia</h3><span id="commitmentCount" class="pill">0</span></div><div id="commitmentList" class="empty">Sin solicitudes detectadas.</div></div></div>
     </section>`);
     document.getElementById('analyticsRefresh').addEventListener('click',load);
   }
@@ -39,12 +39,17 @@
     const list=document.getElementById('incidentList');list.className=items.length?'':'empty';list.innerHTML=items.map(job=>`<div class="incident"><div class="incident-top"><div><b>${esc(job.title)}</b><span class="incident-meta">Intentos ${job.retryCount}/4${job.terminal?' · detenido':''}</span></div><button class="button secondary small retry-job" data-id="${esc(job.id)}" type="button">Reintentar</button></div><p>${esc(job.lastError||'Error sin detalle')}</p></div>`).join('')||'Sin incidencias.';
     list.querySelectorAll('.retry-job').forEach(button=>button.addEventListener('click',async()=>{button.disabled=true;button.textContent='Reintentando…';try{await request(`/api/jobs/${encodeURIComponent(button.dataset.id)}/retry`,{method:'POST'});await window.refreshAll?.();await load()}catch(error){button.disabled=false;button.textContent='Reintentar';window.notice?.(error.message,'error')}}));
   }
+  function renderCommitments(data){
+    const items=data.items||[],pending=items.filter(x=>x.status==='pending').length;document.getElementById('commitmentCount').textContent=pending?`${pending} pendiente${pending===1?'':'s'}`:`${items.length} atendido${items.length===1?'':'s'}`;
+    const list=document.getElementById('commitmentList');list.className=items.length?'':'empty';list.innerHTML=items.map(item=>`<div class="commitment"><div><b>“${esc(item.trigger)}” · ${esc(item.sourceTitle)}</b><small>${item.requestCount} solicitud(es) de ${esc(item.commenters.join(', '))}${item.followUp?` · Entregado: <a href="${esc(item.followUp.url)}" target="_blank" rel="noreferrer">${esc(item.followUp.title)}</a>`:' · Se incorporará como prioridad editorial'}</small></div><span class="commitment-state ${item.status}">${item.status==='fulfilled'?'Entregado':'Pendiente'}</span></div>`).join('')||'Sin solicitudes detectadas.';
+  }
   async function load(){
     shell();if(!token()){document.getElementById('insightCards').innerHTML='<div class="empty">Conecta el panel para consultar YouTube.</div>';return}
     const button=document.getElementById('analyticsRefresh');if(button){button.disabled=true;button.textContent='Consultando…'}
-    const [analytics,incidents]=await Promise.allSettled([request('/api/analytics?days=28'),request('/api/jobs?page=1&pageSize=25&status=failed&sort=updatedAt&direction=desc')]);
+    const [analytics,incidents,commitments]=await Promise.allSettled([request('/api/analytics?days=28'),request('/api/jobs?page=1&pageSize=25&status=failed&sort=updatedAt&direction=desc'),request('/api/engagement')]);
     if(analytics.status==='fulfilled'&&analytics.value)renderAnalytics(analytics.value);else document.getElementById('insightCards').innerHTML=`<div class="empty">No se pudieron consultar las métricas: ${esc(analytics.reason?.message||'Sin conexión')}</div>`;
     if(incidents.status==='fulfilled')renderIncidents(incidents.value);else document.getElementById('incidentList').textContent='No se pudieron consultar las incidencias.';
+    if(commitments.status==='fulfilled')renderCommitments(commitments.value);else document.getElementById('commitmentList').textContent='No se pudieron revisar los compromisos.';
     if(button){button.disabled=false;button.textContent='Actualizar métricas'}
   }
   document.addEventListener('DOMContentLoaded',()=>{shell();load();setInterval(()=>{if(document.visibilityState==='visible')load()},60000)});
