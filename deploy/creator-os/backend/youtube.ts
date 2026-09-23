@@ -114,7 +114,9 @@ export async function demandContext(userId:string):Promise<EditorialContext>{
     if(!response.ok)continue;
     const data=await response.json() as any;signals.push(query,...(data.items||[]).map((x:any)=>x.snippet?.title||'').filter(Boolean));
   }
-  return {demandSignals:signals.slice(0,25),recentVideos:await recentEditorialVideos(userId)};
+  const commitments=await engagementCommitments(userId).catch(()=>[]);
+  const pending=commitments.filter(x=>x.status==='pending').map(x=>`AUDIENCE COMMITMENT (priority): deliver ${x.trigger} requested on ${x.sourceTitle}`);
+  return {demandSignals:[...pending,...signals].slice(0,25),recentVideos:await recentEditorialVideos(userId)};
 }
 async function recentEditorialVideos(userId:string){
   const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:30});
@@ -351,4 +353,29 @@ export async function channelAnalytics(userId:string,days=28){
     totals:{views:videos.reduce((n,x)=>n+x.views,0),likes:videos.reduce((n,x)=>n+x.likes,0),comments:videos.reduce((n,x)=>n+x.comments,0)},
     updatedAt:new Date().toISOString(),
   };
+}
+
+export async function engagementCommitments(userId:string){
+  if(!await tokenFor(userId))return [];
+  const access=await accessToken(userId),jobs=(await listJobs(userId)).filter(x=>x.youtubeVideoId);
+  const byVideo=new Map(jobs.map(x=>[x.youtubeVideoId as string,x]));
+  const channel=await channelSummary(userId);if(!channel)return [];
+  const query=new URLSearchParams({part:'snippet',allThreadsRelatedToChannelId:channel.id,maxResults:'100',order:'time',textFormat:'plainText'});
+  const response=await fetch(`https://www.googleapis.com/youtube/v3/commentThreads?${query}`,{headers:{authorization:`Bearer ${access}`}});
+  const data=await response.json() as any;if(!response.ok)throw new Error(`Comment scan failed (${response.status})`);
+  const keywords=['workflow','parte 2','part 2','segunda parte','código','codigo','code','plantilla','template','repositorio'];
+  const grouped=new Map<string,any>();
+  for(const item of data.items||[]){
+    const snippet=item.snippet||{},videoId=snippet.videoId,source=byVideo.get(videoId);if(!source)continue;
+    const top=snippet.topLevelComment?.snippet||{},text=String(top.textDisplay||top.textOriginal||'').trim();
+    const normalized=text.toLocaleLowerCase('es-MX');const trigger=keywords.find(x=>normalized===x||normalized.includes(x));if(!trigger)continue;
+    const key=`${videoId}:${trigger}`,existing=grouped.get(key)||{sourceVideoId:videoId,sourceTitle:source.title,sourceUrl:source.youtubeUrl,sourceCreatedAt:source.createdAt,trigger,requestCount:0,commenters:[],latestCommentAt:'',commentIds:[]};
+    existing.requestCount++;existing.commenters.push(String(top.authorDisplayName||'Audiencia'));existing.commentIds.push(String(snippet.topLevelComment?.id||''));
+    if(String(top.publishedAt||'')>existing.latestCommentAt)existing.latestCommentAt=String(top.publishedAt||'');grouped.set(key,existing);
+  }
+  return [...grouped.values()].map(request=>{
+    const followUp=jobs.filter(x=>x.youtubeVideoId!==request.sourceVideoId&&x.createdAt>request.sourceCreatedAt&&x.status==='published'&&x.privacyStatus==='public')
+      .find(x=>`${x.title} ${x.description}`.toLocaleLowerCase('es-MX').includes(request.trigger));
+    return {...request,commenters:[...new Set(request.commenters)].slice(0,5),status:followUp?'fulfilled':'pending',followUp:followUp?{videoId:followUp.youtubeVideoId,title:followUp.title,url:followUp.youtubeUrl}:null};
+  }).sort((a,b)=>(a.status===b.status?b.latestCommentAt.localeCompare(a.latestCommentAt):a.status==='pending'?-1:1));
 }
