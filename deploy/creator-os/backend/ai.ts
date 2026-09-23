@@ -10,9 +10,9 @@ function parseJsonText(text:string) {
   return text.trim().replace(/^```json\s*/i,'').replace(/```$/,'').trim();
 }
 
-async function geminiGenerate(options:GenerateOptions) {
+async function geminiGenerate(options:GenerateOptions, modelOverride?:string) {
   const key = process.env.GEMINI_API_KEY!;
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const model = modelOverride || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
   const generationConfig: Record<string,unknown> = {
     temperature: options.temperature ?? 0.3,
@@ -51,10 +51,11 @@ async function geminiGenerate(options:GenerateOptions) {
   return text;
 }
 
-async function compatibleGenerate(options:GenerateOptions) {
-  const base = (process.env.AI_BASE_URL || '').replace(/\/$/,'');
-  const key = process.env.AI_API_KEY || '';
-  const model = process.env.AI_MODEL || '';
+async function compatibleGenerate(options:GenerateOptions,provider:'deepseek'|'kimi'|'compatible') {
+  const prefix=provider==='compatible'?'AI':provider.toUpperCase();
+  const base = (process.env[`${prefix}_BASE_URL`] || (provider==='deepseek'?'https://api.deepseek.com':provider==='kimi'?'https://api.moonshot.ai/v1':'')).replace(/\/$/,'');
+  const key = process.env[`${prefix}_API_KEY`] || '';
+  const model = process.env[`${prefix}_MODEL`] || '';
   if (!base || !key || !model) throw new Error('No AI provider configured');
   const payload:any = {
     model,
@@ -96,8 +97,28 @@ async function compatibleGenerate(options:GenerateOptions) {
 }
 
 export async function generateText(options:GenerateOptions) {
-  if (process.env.GEMINI_API_KEY) return geminiGenerate(options);
-  return compatibleGenerate(options);
+  const requested=(process.env.AI_PROVIDER_ORDER||'gemini,deepseek,kimi,compatible').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const providers=[...new Set(requested)] as Array<'gemini'|'deepseek'|'kimi'|'compatible'>;
+  const failures:string[]=[];
+  for(const provider of providers){
+    try{
+      if(provider==='gemini'){
+        if(!process.env.GEMINI_API_KEY)continue;
+        try{return await geminiGenerate(options);}
+        catch(error){
+          const fallback=process.env.GEMINI_FALLBACK_MODEL?.trim();
+          if(fallback&&fallback!==process.env.GEMINI_MODEL){
+            try{return await geminiGenerate(options,fallback);}catch(fallbackError){failures.push(`gemini-fallback: ${fallbackError instanceof Error?fallbackError.message:String(fallbackError)}`);}
+          }
+          throw error;
+        }
+      }
+      const prefix=provider==='compatible'?'AI':provider.toUpperCase();
+      if(!process.env[`${prefix}_API_KEY`])continue;
+      return await compatibleGenerate(options,provider);
+    }catch(error){failures.push(`${provider}: ${error instanceof Error?error.message:String(error)}`);}
+  }
+  throw new Error(`All configured AI providers failed: ${failures.join(' | ').slice(0,1800)}`);
 }
 
 export async function generateJson<T>(options:GenerateOptions):Promise<T> {
