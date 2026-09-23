@@ -27,6 +27,10 @@ const SOURCES=[
   ['openai-tracing','OpenAI Agents tracing','https://openai.github.io/openai-agents-python/tracing/'],
   ['openai-guardrails','OpenAI Agents guardrails','https://openai.github.io/openai-agents-python/guardrails/'],
   ['github-security','GitHub Actions secure use','https://docs.github.com/en/actions/reference/security/secure-use'],
+  ['figma-ai','Figma AI product capabilities','https://www.figma.com/ai/'],
+  ['figma-design-trends','Figma web design trends 2026','https://www.figma.com/resource-library/web-design-trends/'],
+  ['adobe-firefly','Adobe Firefly current capabilities','https://helpx.adobe.com/firefly/web/whats-new/new-features/whats-new.html'],
+  ['wcag-quickref','W3C WCAG 2.2 quick reference','https://www.w3.org/WAI/WCAG22/quickref/'],
 ] as const;
 
 type Stage='research'|'problem'|'outline'|'script'|'fact_review'|'storyboard'|'quality_gate'|'revision'|'rendering'|'assembly'|'ready'|'published'|'rejected';
@@ -109,8 +113,8 @@ async function doResearch(p:Stored<Project>,ctx:EditorialContext){
   const sources=await fetchSources();
   if(sources.length<3)throw new Error(`Only ${sources.length} official sources available; refusing to invent a tutorial`);
   const result=await generateJson<{opportunities:Opportunity[]}>({
-    system:'You are a senior technical YouTube editor. Find concrete practitioner problems around n8n, AI automation, software architecture and workflow reliability. Reject hype, generic tool lists, income claims, trend-only topics and topics that cannot be demonstrated. Use only supplied source keys.',
-    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,25).join('\n')}\n\nRecent titles to avoid:\n${ctx.recentVideos.slice(0,20).map(x=>x.title).join('\n')}\n\nOfficial sources:\n${sourceText(sources)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Score utility and demonstrability 0-100.`,
+    system:'You are a senior technical YouTube editor. Find concrete practitioner problems across AI automation, agents, software architecture, cybersecurity, productivity, AI-assisted design, design systems, accessibility and design-to-code. Reject hype, generic tool lists, income claims, trend-only topics and topics that cannot be demonstrated. A popular topic is insufficient: require a specific competitive gap that existing tutorials usually omit. Use only supplied source keys.',
+    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,25).join('\n')}\n\nRecent titles to avoid:\n${ctx.recentVideos.slice(0,20).map(x=>x.title).join('\n')}\n\nOfficial sources:\n${sourceText(sources)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
     schema:RESEARCH_SCHEMA,temperature:.35,maxTokens:4000,
   });
   const keys=new Set(sources.map(x=>x.key));
