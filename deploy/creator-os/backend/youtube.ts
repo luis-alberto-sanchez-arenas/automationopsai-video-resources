@@ -124,7 +124,7 @@ export async function ensurePublishJob(userId:string,spec?:PublishSpec){
   const t=new Date().toISOString();
   const record:PublishJob={
     userId,automationKey:spec.automationKey,title:spec.title,description:spec.description,tags:spec.tags,
-    privacyStatus:'private',targetPrivacyStatus:'unlisted',preparedStoragePath:spec.preparedStoragePath,
+    privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript,status:'pending',uploadedBytes:0,retryCount:0,
     thumbnailStatus:'pending',createdAt:t,updatedAt:t,
   };
@@ -163,6 +163,18 @@ export async function makeJobPublic(userId:string,jobId:string){
   job.privacyStatus='public';job.targetPrivacyStatus='public';job.lastError=undefined;
   await saveJob(job);
   return {status:'public',youtubeUrl:job.youtubeUrl};
+}
+
+export async function promoteApprovedReviewedJobs(userId:string){
+  const candidates=(await listJobs(userId)).filter(job=>
+    job.automationKey.startsWith('reviewed-')&&job.status==='published'&&
+    job.thumbnailStatus==='set'&&job.privacyStatus!=='public'&&Boolean(job.youtubeVideoId)
+  );
+  const results=[];
+  for(const job of candidates){
+    results.push({id:job.id,...await makeJobPublic(userId,job.id)});
+  }
+  return results;
 }
 
 async function initiate(job:PublishJob,totalBytes:number,access:string){

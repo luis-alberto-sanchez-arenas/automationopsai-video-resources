@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { initPlatform, withLock } from './platform.js';
 import { advanceEditorial } from './editorial.js';
-import { demandContext, ensurePublishJob, processOnePublishStep, youtubeConnected } from './youtube.js';
+import { demandContext, ensurePublishJob, processOnePublishStep, promoteApprovedReviewedJobs, youtubeConnected } from './youtube.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
 await initPlatform();
@@ -20,6 +20,8 @@ async function publishCycle(){
   if(!await youtubeConnected(USER_ID))return;
   const result=await processOnePublishStep(USER_ID);
   console.log(`worker: publish=${JSON.stringify(result)}`);
+  const promoted=await promoteApprovedReviewedJobs(USER_ID);
+  if(promoted.length)console.log(`worker: promoted=${JSON.stringify(promoted)}`);
 }
 async function guarded(name:string,fn:()=>Promise<unknown>){
   try{await withLock(`automationopsai:${name}`,fn);}
