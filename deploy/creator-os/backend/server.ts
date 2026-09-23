@@ -203,11 +203,11 @@ app.post('/api/reviewed/thumbnail',requireAdmin,express.raw({type:['image/jpeg',
 });
 app.post('/api/reviewed/jobs',requireAdmin,async(req,res,next)=>{
   try{
-    const {key,title,description,tags,transcript,videoPath,thumbnailPath}=req.body||{};
+    const {key,title,description,tags,transcript,videoPath,thumbnailPath,publishAt}=req.body||{};
     const cleanKey=reviewedKey(key);
     if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
-    const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath};
+    const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath,publishAt:publishAt?new Date(String(publishAt)).toISOString():undefined};
     const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});
   }catch(e){next(e);}
@@ -231,11 +231,11 @@ app.post('/api/automation-upload/thumbnail',requireAutomationUpload,express.raw(
 });
 app.post('/api/automation-upload/jobs',requireAutomationUpload,async(req,res,next)=>{
   try{
-    const {key,title,description,tags,transcript,videoPath,thumbnailPath}=req.body||{};
+    const {key,title,description,tags,transcript,videoPath,thumbnailPath,publishAt}=req.body||{};
     const cleanKey=reviewedKey(key);
     if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
-    const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath};
+    const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath,publishAt:publishAt?new Date(String(publishAt)).toISOString():undefined};
     const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});
   }catch(e){next(e);}
