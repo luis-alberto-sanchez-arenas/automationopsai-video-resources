@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
 import { advanceEditorial, getEditorialStatus } from './editorial.js';
 import {
-  channelAnalytics,channelSummary,demandContext,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
+  channelAnalytics,channelSummary,demandContext,engagementCommitments,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
   makeJobPublic,processOnePublishStep,retryJob,youtubeConnected,
 } from './youtube.js';
 
@@ -88,6 +88,11 @@ app.get('/api/jobs',requireAdmin,async(req,res,next)=>{
 
 app.get('/api/analytics',requireAdmin,async(req,res,next)=>{
   try{res.json(await channelAnalytics(USER_ID,Number(req.query.days||28)));}
+  catch(e){next(e);}
+});
+
+app.get('/api/engagement',requireAdmin,async(_req,res,next)=>{
+  try{res.json({items:await engagementCommitments(USER_ID)});}
   catch(e){next(e);}
 });
 
