@@ -251,6 +251,8 @@ app.post('/api/publish/now',requireAdmin,async(_req,res,next)=>{
   catch(e){next(e);}
 });
 
+app.get(['/privacy','/privacy-policy'],(_req,res)=>res.sendFile(join(process.cwd(),'public','privacy-policy.html')));
+app.get(['/terms','/terms-of-service'],(_req,res)=>res.sendFile(join(process.cwd(),'public','terms-of-service.html')));
 app.use(express.static(join(process.cwd(),'public'),{maxAge:'5m'}));
 app.use((_req,res)=>res.sendFile(join(process.cwd(),'public','index.html')));
 
