@@ -160,14 +160,64 @@ def background(spec: ShortSpec, t: float, variant: int):
     return image
 
 
-def caption(image: Image.Image, text: str, color: str):
+def caption(image: Image.Image, text: str, color: str, progress: float):
     draw = ImageDraw.Draw(image)
     draw.rounded_rectangle((24, 832, 516, 936), 18, fill=(2, 7, 14, 242), outline=color, width=2)
-    wrapped = lines(draw, text, 18, 445)[:3]
-    start = 870 - len(wrapped) * 11
-    for index, line in enumerate(wrapped):
-        box = draw.textbbox((0, 0), line, font=font(18, True))
-        draw.text(((W - (box[2] - box[0])) / 2, start + index * 23), line, font=font(18, True), fill="#FFFFFF")
+    words = text.split()
+    active = min(len(words)-1, max(0, int(clamp(progress) * len(words))))
+    window_start = max(0, min(active-4, max(0, len(words)-10)))
+    visible = [(word, window_start+i == active) for i, word in enumerate(words[window_start:window_start+10])]
+    rows: list[list[tuple[str, bool]]] = [[]]
+    for word, is_active in visible:
+        trial = " ".join(value for value, _ in rows[-1] + [(word, is_active)])
+        if rows[-1] and draw.textbbox((0, 0), trial, font=font(18, True))[2] > 445:
+            rows.append([])
+        rows[-1].append((word, is_active))
+    y = 865 if len(rows) == 2 else 878
+    for row in rows[:2]:
+        widths = [draw.textbbox((0, 0), value, font=font(18, True))[2] for value, _ in row]
+        space = draw.textbbox((0, 0), " ", font=font(18, True))[2]
+        x = (W - (sum(widths) + space * max(0, len(row)-1))) / 2
+        for (word, is_active), word_width in zip(row, widths):
+            draw.text((x, y), word, font=font(18, True), fill=color if is_active else "#FFFFFF")
+            x += word_width + space
+        y += 27
+
+
+def concept_motion(image: Image.Image, spec: ShortSpec, t: float, index: int, progress: float):
+    """Motion layer constrained behind UI/text exclusion zones."""
+    layer = Image.new("RGBA", image.size)
+    draw = ImageDraw.Draw(layer)
+    accent, second, danger = spec.palette[1:]
+    pulse = .5 + .5 * math.sin(t * 3.2)
+    # All effects stay inside the visual stage: y=92..812. Header and captions
+    # are rendered later and are therefore impossible to intersect.
+    draw.rounded_rectangle((30, 92, 510, 812), 26, outline=accent + f"{int(18 + pulse*20):02x}", width=2)
+    if spec.key == "agent-sandbox":
+        for lane in range(4):
+            y = 205 + lane * 145
+            x = 50 + ((t * (70 + lane*9) + lane*103) % 440)
+            draw.line((45, y, 495, y), fill=second+"22", width=2)
+            draw.ellipse((x-5, y-5, x+5, y+5), fill=accent+"d0")
+        radius = 90 + 32 * pulse
+        draw.arc((W/2-radius, 480-radius, W/2+radius, 480+radius), int(t*75)%360, int(t*75)%360+105, fill=danger+"b0", width=5)
+    elif spec.key == "mcp-integrity":
+        for ring in range(3):
+            radius = 70 + ring*58 + 12*math.sin(t*2+ring)
+            draw.arc((W/2-radius, 455-radius, W/2+radius, 455+radius), int(-t*55+ring*60)%360, int(-t*55+ring*60)%360+120, fill=(accent,second,danger)[ring]+"75", width=4)
+        scan_x = 40 + int((t*95)%460)
+        draw.rectangle((scan_x, 120, scan_x+3, 790), fill=second+"45")
+    else:
+        for lane in range(5):
+            start_y = 185 + lane*120
+            travel = ease((progress + lane*.13) % 1)
+            x = 70 + travel*400
+            draw.line((70,start_y,470,start_y),fill=accent+"24",width=2)
+            draw.rounded_rectangle((x-12,start_y-5,x+12,start_y+5),5,fill=(accent,second,danger)[lane%3]+"b5")
+    if progress < .14:
+        sweep = int(ease(progress/.14) * (W+150)) - 150
+        draw.polygon(((sweep-35, 92), (sweep, 92), (sweep+58, 812), (sweep+23, 812)), fill=accent+"32")
+    image.alpha_composite(layer)
 
 
 def header(image: Image.Image, spec: ShortSpec, index: int):
@@ -344,6 +394,7 @@ def render(spec: ShortSpec, timeline: dict, directory: Path):
         item = segments[index]
         progress = clamp((t - item["start"]) / max(.1, item["end"] - item["start"]))
         image = background(spec, t, SPECS.index(spec))
+        concept_motion(image, spec, t, index, progress)
         header(image, spec, index)
         if spec.key == "agent-sandbox":
             render_sandbox(image, index, progress, spec)
@@ -351,11 +402,7 @@ def render(spec: ShortSpec, timeline: dict, directory: Path):
             render_mcp(image, index, progress, spec)
         else:
             render_patch(image, index, progress, spec)
-        caption(image, item["text"], spec.palette[1])
-        if progress < .12:
-            draw = ImageDraw.Draw(image)
-            x = int(ease(progress/.12) * (W+120)) - 120
-            draw.polygon(((x-35, 0), (x, 0), (x+65, 820), (x+30, 820)), fill=spec.palette[1]+"35")
+        caption(image, item["text"], spec.palette[1], progress)
         proc.stdin.write(image.convert("RGB").tobytes())
     proc.stdin.close()
     if proc.wait() != 0:
