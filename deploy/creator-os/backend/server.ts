@@ -7,6 +7,10 @@ import {
   channelAnalytics,channelSummary,demandContext,engagementCommitments,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
   makeJobPublic,processOnePublishStep,promoteApprovedReviewedJobs,retryJob,youtubeConnected,
 } from './youtube.js';
+import {
+  ensureReviewedTikTokJob,ensureTikTokPublishJob,listTikTokJobs,processOneTikTokStep,tiktokConfigured,
+  tiktokConnected,tiktokMirrorEnabled,tiktokOauthComplete,tiktokOauthStart,
+} from './tiktok.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
 await initPlatform();
@@ -32,8 +36,9 @@ app.get('/api/public/status',async(_req,res,next)=>{
 
 app.get('/api/status',requireAdmin,async(_req,res,next)=>{
   try{
-    const [editorial,jobs,connected,channel]=await Promise.all([
+    const [editorial,jobs,connected,channel,tiktokJobs,tiktokIsConnected]=await Promise.all([
       getEditorialStatus(USER_ID),listJobs(USER_ID),youtubeConnected(USER_ID),channelSummary(USER_ID).catch(()=>null),
+      listTikTokJobs(USER_ID),tiktokConnected(USER_ID),
     ]);
     const summary={
       total:jobs.length,
@@ -49,6 +54,7 @@ app.get('/api/status',requireAdmin,async(_req,res,next)=>{
     ].sort((a,b)=>b.at.localeCompare(a.at)).slice(0,8);
     res.json({
       youtubeConnected:connected,channel,editorial,
+      tiktok:{configured:tiktokConfigured(),connected:tiktokIsConnected,mirrorEnabled:tiktokMirrorEnabled(),jobs:{total:tiktokJobs.length,published:tiktokJobs.filter(x=>x.status==='published').length,active:tiktokJobs.filter(x=>['pending','uploading','processing'].includes(x.status)).length,failed:tiktokJobs.filter(x=>x.status==='failed').length}},
       summary,activity,
       config:{
         google:Boolean(process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET),
@@ -123,6 +129,24 @@ app.get('/api/oauth/callback',(req,res)=>{
   res.redirect(302,`/?${q.toString()}`);
 });
 
+app.get('/api/tiktok/oauth/start',requireAdmin,async(_req,res,next)=>{
+  try{res.json(await tiktokOauthStart(USER_ID));}catch(e){next(e);}
+});
+app.get('/api/tiktok/oauth/callback/',async(req,res)=>{
+  try{
+    if(req.query.error)throw new Error(String(req.query.error_description||req.query.error));
+    const code=String(req.query.code||''),state=String(req.query.state||'');
+    if(!code||!state)throw new Error('TikTok callback is missing code/state');
+    await tiktokOauthComplete(USER_ID,code,state);res.redirect(302,'/?tiktok=connected');
+  }catch(error){res.redirect(302,`/?tiktok_error=${encodeURIComponent(error instanceof Error?error.message:String(error))}`);}
+});
+app.get('/api/tiktok/jobs',requireAdmin,async(_req,res,next)=>{
+  try{res.json({items:await listTikTokJobs(USER_ID)});}catch(e){next(e);}
+});
+app.post('/api/tiktok/publish/now',requireAdmin,async(_req,res,next)=>{
+  try{res.json({ok:true,...await processOneTikTokStep(USER_ID)});}catch(e){next(e);}
+});
+
 function reviewedKey(value:unknown){
   const key=String(value||'');
   if(!/^[a-z0-9][a-z0-9-]{7,79}$/.test(key))throw new Error('Invalid reviewed asset key');
@@ -165,7 +189,8 @@ app.post('/api/reviewed/jobs',requireAdmin,async(req,res,next)=>{
     const cleanKey=reviewedKey(key);
     if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
-    const job=await ensureReviewedPublishJob(USER_ID,{key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath});
+    const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath};
+    const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});
   }catch(e){next(e);}
 });
@@ -192,7 +217,8 @@ app.post('/api/automation-upload/jobs',requireAutomationUpload,async(req,res,nex
     const cleanKey=reviewedKey(key);
     if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
-    const job=await ensureReviewedPublishJob(USER_ID,{key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath});
+    const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath};
+    const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});
   }catch(e){next(e);}
 });
@@ -213,11 +239,15 @@ app.post('/api/editorial/advance',requireAdmin,async(_req,res,next)=>{
     const context=await demandContext(USER_ID);
     const step=await advanceEditorial(USER_ID,context);
     await ensurePublishJob(USER_ID,step.publishSpec);
+    await ensureTikTokPublishJob(USER_ID,step.publishSpec);
     res.json({ok:true,status:step.status,editorial:await getEditorialStatus(USER_ID)});
   }catch(e){next(e);}
 });
 app.post('/api/publish/now',requireAdmin,async(_req,res,next)=>{
-  try{res.json({ok:true,...await processOnePublishStep(USER_ID),editorial:await getEditorialStatus(USER_ID)});}
+  try{
+    const [youtube,tiktok]=await Promise.allSettled([processOnePublishStep(USER_ID),processOneTikTokStep(USER_ID)]);
+    res.json({ok:true,youtube:youtube.status==='fulfilled'?youtube.value:{status:'failed',error:String(youtube.reason)},tiktok:tiktok.status==='fulfilled'?tiktok.value:{status:'failed',error:String(tiktok.reason)},editorial:await getEditorialStatus(USER_ID)});
+  }
   catch(e){next(e);}
 });
 
