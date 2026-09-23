@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
 import { advanceEditorial, getEditorialStatus } from './editorial.js';
 import {
-  channelSummary,demandContext,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
-  makeJobPublic,processOnePublishStep,youtubeConnected,
+  channelAnalytics,channelSummary,demandContext,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
+  makeJobPublic,processOnePublishStep,retryJob,youtubeConnected,
 } from './youtube.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -79,10 +79,21 @@ app.get('/api/jobs',requireAdmin,async(req,res,next)=>{
       id:x.id,title:x.title,status:x.status,privacyStatus:x.privacyStatus,targetPrivacyStatus:x.targetPrivacyStatus,
       progress:x.totalBytes?Math.min(100,Math.round((x.uploadedBytes/x.totalBytes)*100)):0,
       youtubeUrl:x.youtubeUrl,lastError:x.lastError,thumbnailStatus:x.thumbnailStatus,
-      createdAt:x.createdAt,updatedAt:x.updatedAt,automationKey:x.automationKey,
+      createdAt:x.createdAt,updatedAt:x.updatedAt,automationKey:x.automationKey,retryCount:x.retryCount,
+      canRetry:x.status==='failed',terminal:x.status==='failed'&&x.retryCount>=4,
     }));
     res.json({items,page,pageSize,total:filtered.length,totalPages:Math.max(1,Math.ceil(filtered.length/pageSize)),sort,direction,status});
   }catch(e){next(e);}
+});
+
+app.get('/api/analytics',requireAdmin,async(req,res,next)=>{
+  try{res.json(await channelAnalytics(USER_ID,Number(req.query.days||28)));}
+  catch(e){next(e);}
+});
+
+app.post('/api/jobs/:id/retry',requireAdmin,async(req,res,next)=>{
+  try{res.json({ok:true,...await retryJob(USER_ID,String(req.params.id))});}
+  catch(e){next(e);}
 });
 
 app.post('/api/jobs/:id/public',requireAdmin,async(req,res,next)=>{
