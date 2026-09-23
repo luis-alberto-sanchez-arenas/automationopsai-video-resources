@@ -139,12 +139,13 @@ app.post('/api/oauth/complete',requireAdmin,async(req,res,next)=>{
     res.json(await oauthComplete(USER_ID,String(code),String(state)));
   }catch(e){next(e);}
 });
-app.get('/api/oauth/callback',(req,res)=>{
-  const q=new URLSearchParams();
-  if(req.query.code)q.set('code',String(req.query.code));
-  if(req.query.state)q.set('state',String(req.query.state));
-  if(req.query.error)q.set('error',String(req.query.error));
-  res.redirect(302,`/?${q.toString()}`);
+app.get('/api/oauth/callback',async(req,res)=>{
+  try{
+    if(req.query.error)throw new Error(String(req.query.error_description||req.query.error));
+    const code=String(req.query.code||''),state=String(req.query.state||'');
+    if(!code||!state)throw new Error('Google callback is missing code/state');
+    await oauthComplete(USER_ID,code,state);res.redirect(302,'/?youtube=connected');
+  }catch(error){res.redirect(302,`/?error=${encodeURIComponent(error instanceof Error?error.message:String(error))}`);}
 });
 
 app.get('/api/tiktok/oauth/start',requireAdmin,async(_req,res,next)=>{
@@ -239,6 +240,9 @@ app.post('/api/automation-upload/jobs',requireAutomationUpload,async(req,res,nex
     const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});
   }catch(e){next(e);}
+});
+app.get('/api/automation-upload/oauth/start',requireAutomationUpload,async(_req,res,next)=>{
+  try{res.json(await oauthStart(USER_ID));}catch(e){next(e);}
 });
 app.post('/api/automation-upload/process',requireAutomationUpload,async(_req,res,next)=>{
   try{res.json({ok:true,step:await processOnePublishStep(USER_ID),promoted:await promoteApprovedReviewedJobs(USER_ID)});}
