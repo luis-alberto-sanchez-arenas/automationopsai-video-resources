@@ -21,10 +21,12 @@ export type PublishJob={
   status:'pending'|'uploading'|'published'|'failed';
   totalBytes?:number;uploadedBytes:number;uploadSessionUrl?:string;youtubeVideoId?:string;youtubeUrl?:string;
   thumbnailStatus?:'pending'|'set'|'failed';lastError?:string;retryCount:number;createdAt:string;updatedAt:string;
+  publishAt?:string;
 };
 export type ReviewedPublishSpec={
   key:string;title:string;description:string;tags:string[];transcript:string;
   preparedStoragePath:string;thumbnailStoragePath:string;
+  publishAt?:string;
 };
 
 function origin(){return (process.env.PUBLIC_ORIGIN||'http://localhost:3000').replace(/\/$/,'');}
@@ -149,7 +151,7 @@ export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublis
     userId,automationKey,title:spec.title.slice(0,100),description:spec.description.slice(0,5000),tags:spec.tags.slice(0,12),
     privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript.slice(0,20000),status:'pending',
-    uploadedBytes:0,retryCount:0,thumbnailStatus:'pending',createdAt:t,updatedAt:t,
+    uploadedBytes:0,retryCount:0,thumbnailStatus:'pending',publishAt:spec.publishAt,createdAt:t,updatedAt:t,
   };
   const [id]=await db.add(JOB_TABLE,[record]);return {...record,id};
 }
@@ -184,7 +186,8 @@ export async function makeJobPublic(userId:string,jobId:string){
 export async function promoteApprovedReviewedJobs(userId:string){
   const candidates=(await listJobs(userId)).filter(job=>
     job.automationKey.startsWith('reviewed-')&&job.status==='published'&&
-    job.thumbnailStatus==='set'&&job.privacyStatus!=='public'&&Boolean(job.youtubeVideoId)
+    job.thumbnailStatus==='set'&&job.privacyStatus!=='public'&&Boolean(job.youtubeVideoId)&&
+    (!job.publishAt||new Date(job.publishAt).getTime()<=Date.now())
   );
   const results=[];
   for(const job of candidates){
@@ -201,7 +204,7 @@ async function initiate(job:PublishJob,totalBytes:number,access:string){
     },
     body:JSON.stringify({
       snippet:{title:job.title,description:job.description,tags:job.tags,categoryId:'28',defaultLanguage:'en',defaultAudioLanguage:'en'},
-      status:{privacyStatus:job.privacyStatus,selfDeclaredMadeForKids:false,containsSyntheticMedia:true},
+      status:{privacyStatus:job.privacyStatus,selfDeclaredMadeForKids:false,containsSyntheticMedia:true,...(job.publishAt?{publishAt:job.publishAt}:{})},
     }),
   });
   if(!response.ok)throw new Error(`YouTube could not start upload (${response.status}): ${(await response.text()).slice(0,500)}`);
@@ -277,6 +280,9 @@ export async function processOnePublishStep(userId:string){
       if(job.thumbnailStatus!=='set'){
         await thumbnail(job.youtubeVideoId,await storage.url(job.thumbnailStoragePath),access);
         job.thumbnailStatus='set';await saveJob(job);return {status:'thumbnail-set',youtubeUrl:job.youtubeUrl};
+      }
+      if(job.publishAt&&new Date(job.publishAt).getTime()>Date.now()){
+        job.status='published';job.lastError=undefined;await saveJob(job);return {status:'scheduled',publishAt:job.publishAt,youtubeUrl:job.youtubeUrl};
       }
       if(job.privacyStatus!==job.targetPrivacyStatus){
         await privacy(job.youtubeVideoId,job.targetPrivacyStatus,access);job.privacyStatus=job.targetPrivacyStatus;await saveJob(job);return {status:'unlisted',youtubeUrl:job.youtubeUrl};
