@@ -7,7 +7,11 @@ import { EDITORIAL_PREFIX, getEditorialStatus, markPublished, type EditorialCont
 const TOKEN_TABLE='youtube_tokens_v2';
 const JOB_TABLE='youtube_publish_jobs_v2';
 const CHUNK_SIZE=16*1024*1024;
-const OAUTH_SCOPE='https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.force-ssl';
+const OAUTH_SCOPE=[
+  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+  'https://www.googleapis.com/auth/yt-analytics.readonly',
+].join(' ');
 
 type TokenRecord={userId:string;encryptedRefreshToken:string;createdAt:string;updatedAt:string};
 export type PublishJob={
@@ -152,6 +156,16 @@ export async function listJobs(userId:string){
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function retryJob(userId:string,jobId:string){
+  const job=(await listJobs(userId)).find(x=>x.id===jobId);
+  if(!job)throw new Error('Publish job not found');
+  if(job.status!=='failed')return {status:job.status,retryCount:job.retryCount};
+  job.status='pending';job.retryCount=0;job.lastError=undefined;
+  if(!job.youtubeVideoId){job.uploadSessionUrl=undefined;job.uploadedBytes=0;}
+  await saveJob(job);
+  return {status:'pending',retryCount:0};
+}
+
 export async function makeJobPublic(userId:string,jobId:string){
   const job=(await listJobs(userId)).find(x=>x.id===jobId);
   if(!job)throw new Error('Publish job not found');
@@ -241,11 +255,12 @@ async function saveJob(job:Stored<PublishJob>){
 export async function processOnePublishStep(userId:string){
   const jobs=await listJobs(userId);
   let editorial:Awaited<ReturnType<typeof getEditorialStatus>>|undefined;
-  let job=jobs.find(x=>x.automationKey.startsWith('reviewed-')&&['pending','uploading','failed'].includes(x.status));
+  const recoverable=(x:PublishJob)=>['pending','uploading'].includes(x.status)||(x.status==='failed'&&x.retryCount<4);
+  let job=jobs.find(x=>x.automationKey.startsWith('reviewed-')&&recoverable(x));
   if(!job){
     editorial=await getEditorialStatus(userId);
     if(editorial.stage!=='ready'||!editorial.projectKey)return {status:'not-ready'};
-    job=jobs.find(x=>x.automationKey===editorial!.projectKey&&['pending','uploading','failed'].includes(x.status));
+    job=jobs.find(x=>x.automationKey===editorial!.projectKey&&recoverable(x));
   }
   if(!job)return {status:'no-job'};
   if(job.status==='failed'){
@@ -290,4 +305,50 @@ export async function channelSummary(userId:string){
   const response=await fetch('https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true',{headers:{authorization:`Bearer ${access}`}});
   const data=await response.json() as any;if(!response.ok)return null;const c=data.items?.[0];
   return c?{id:c.id,title:c.snippet?.title||''}:null;
+}
+
+function isoDay(date:Date){return date.toISOString().slice(0,10);}
+export async function channelAnalytics(userId:string,days=28){
+  if(!await tokenFor(userId))return null;
+  const access=await accessToken(userId);
+  const channelResponse=await fetch('https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&mine=true',{headers:{authorization:`Bearer ${access}`}});
+  const channelData=await channelResponse.json() as any;
+  if(!channelResponse.ok)throw new Error(`Channel analytics failed (${channelResponse.status})`);
+  const channel=channelData.items?.[0];
+  if(!channel)throw new Error('YouTube channel not found');
+
+  const jobs=(await listJobs(userId)).filter(x=>x.youtubeVideoId);
+  const ids=[...new Set(jobs.map(x=>x.youtubeVideoId as string))].slice(0,50);
+  let videos:any[]=[];
+  if(ids.length){
+    const response=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=id,snippet,statistics,status&id=${encodeURIComponent(ids.join(','))}`,{headers:{authorization:`Bearer ${access}`}});
+    const data=await response.json() as any;
+    if(response.ok)videos=(data.items||[]).map((item:any)=>({
+      id:item.id,title:item.snippet?.title||'',publishedAt:item.snippet?.publishedAt||null,
+      privacyStatus:item.status?.privacyStatus||'unknown',
+      views:Number(item.statistics?.viewCount||0),likes:Number(item.statistics?.likeCount||0),
+      comments:Number(item.statistics?.commentCount||0),url:`https://www.youtube.com/watch?v=${item.id}`,
+    }));
+  }
+
+  const end=new Date();end.setUTCDate(end.getUTCDate()-1);
+  const start=new Date(end);start.setUTCDate(start.getUTCDate()-Math.max(1,Math.min(days,90))+1);
+  let period={days,views:0,watchMinutes:0,subscribersGained:0,subscribersLost:0,subscriberDelta:0,available:false,error:''};
+  const query=new URLSearchParams({ids:'channel==MINE',startDate:isoDay(start),endDate:isoDay(end),metrics:'views,estimatedMinutesWatched,subscribersGained,subscribersLost'});
+  const reportResponse=await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?${query}`,{headers:{authorization:`Bearer ${access}`}});
+  const report=await reportResponse.json() as any;
+  if(reportResponse.ok&&report.rows?.[0]){
+    const [viewsCount,watchMinutes,gained,lost]=report.rows[0].map((x:any)=>Number(x||0));
+    period={days,views:viewsCount,watchMinutes,subscribersGained:gained,subscribersLost:lost,subscriberDelta:gained-lost,available:true,error:''};
+  }else{
+    period.error=report?.error?.message||'Reautoriza YouTube para activar métricas históricas.';
+  }
+
+  return {
+    channel:{id:channel.id,title:channel.snippet?.title||'',subscribers:Number(channel.statistics?.subscriberCount||0),views:Number(channel.statistics?.viewCount||0),videos:Number(channel.statistics?.videoCount||0),hiddenSubscribers:Boolean(channel.statistics?.hiddenSubscriberCount)},
+    period,
+    topVideos:videos.sort((a,b)=>b.views-a.views).slice(0,8),
+    totals:{views:videos.reduce((n,x)=>n+x.views,0),likes:videos.reduce((n,x)=>n+x.likes,0),comments:videos.reduce((n,x)=>n+x.comments,0)},
+    updatedAt:new Date().toISOString(),
+  };
 }
