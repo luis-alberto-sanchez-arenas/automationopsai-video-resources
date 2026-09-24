@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { db, initPlatform, withLock } from './platform.js';
 import { advanceEditorial } from './editorial.js';
-import { demandContext, ensurePublishJob, processOnePublishStep, promoteApprovedReviewedJobs, youtubeConnected } from './youtube.js';
+import { demandContext, ensurePublishJob, processOnePublishStep, promoteApprovedReviewedJobs, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -11,7 +11,8 @@ await initPlatform();
 
 type SchedulerState={
   userId:string;editorialFailures:number;nextEditorialAt?:string;lastEditorialAt?:string;
-  lastEditorialResult?:string;lastPublisherAt?:string;lastPublisherResult?:string;updatedAt:string;
+  lastEditorialResult?:string;lastPublisherAt?:string;lastPublisherResult?:string;
+  lastMetadataRepairAt?:string;lastMetadataRepairResult?:string;updatedAt:string;
 };
 async function state(){
   const {items}=await db.list<SchedulerState>(SCHEDULER_TABLE,{filter:{userId:USER_ID},limit:1});
@@ -66,6 +67,13 @@ async function publishCycle(){
   scheduler.lastPublisherResult=JSON.stringify(youtube.status==='fulfilled'?youtube.value:{status:'failed',error:String(youtube.reason)}).slice(0,700);
   await saveState(scheduler);
 }
+async function metadataRepairCycle(){
+  if(!await youtubeConnected(USER_ID))return;
+  const result=await repairPublishedDiscoveryMetadata(USER_ID);
+  const scheduler=await state();scheduler.lastMetadataRepairAt=new Date().toISOString();
+  scheduler.lastMetadataRepairResult=JSON.stringify(result).slice(0,1000);await saveState(scheduler);
+  console.log(`worker: metadata-repair=${JSON.stringify(result)}`);
+}
 async function guarded(name:string,fn:()=>Promise<unknown>){
   try{await withLock(`automationopsai:${name}`,fn);}
   catch(e){console.error(`worker ${name}:`,e);}
@@ -74,7 +82,9 @@ async function guarded(name:string,fn:()=>Promise<unknown>){
 const TIMEZONE=process.env.SCHEDULE_TIMEZONE||'America/Mexico_City';
 cron.schedule('*/5 * * * *',()=>void guarded('editorial',editorialCycle),{timezone:TIMEZONE});
 cron.schedule('* * * * *',()=>void guarded('publisher',publishCycle),{timezone:TIMEZONE});
+cron.schedule('30 4 * * *',()=>void guarded('metadata-repair',metadataRepairCycle),{timezone:TIMEZONE});
 
 console.log(`AutomationOpsAI worker started: editorial=${AUTO_EDITORIAL?'enabled/5min':'disabled-quality-protection'}; publisher=1min; timezone=${TIMEZONE}; external production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
 if(AUTO_EDITORIAL)void guarded('startup-editorial',editorialCycle);
 void guarded('startup-publisher',publishCycle);
+void guarded('startup-metadata-repair',metadataRepairCycle);
