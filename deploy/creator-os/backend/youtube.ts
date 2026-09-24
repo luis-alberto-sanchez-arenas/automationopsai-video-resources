@@ -106,23 +106,98 @@ export async function oauthComplete(userId:string,code:string,stateValue:string)
 }
 export async function youtubeConnected(userId:string){return Boolean(await tokenFor(userId));}
 
+type ManagedVideoMetric={
+  id:string;title:string;publishedAt:string|null;privacyStatus:string;
+  views:number;likes:number;comments:number;url:string;ageDays:number;viewsPerDay:number;
+};
+async function managedVideoMetrics(userId:string,access:string):Promise<ManagedVideoMetric[]>{
+  const jobs=(await listJobs(userId)).filter(x=>x.youtubeVideoId);
+  const ids=[...new Set(jobs.map(x=>x.youtubeVideoId as string))].slice(0,50);
+  if(!ids.length)return [];
+  const response=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=id,snippet,statistics,status&id=${encodeURIComponent(ids.join(','))}`,{headers:{authorization:`Bearer ${access}`}});
+  if(!response.ok)return [];
+  const data=await response.json() as any;
+  const now=Date.now();
+  return (data.items||[]).map((item:any)=>{
+    const publishedAt=item.snippet?.publishedAt||null;
+    const ageDays=publishedAt?Math.max(0,(now-new Date(publishedAt).getTime())/86_400_000):0;
+    const views=Number(item.statistics?.viewCount||0);
+    return {
+      id:item.id,title:item.snippet?.title||'',publishedAt,
+      privacyStatus:item.status?.privacyStatus||'unknown',views,
+      likes:Number(item.statistics?.likeCount||0),comments:Number(item.statistics?.commentCount||0),
+      url:`https://www.youtube.com/watch?v=${item.id}`,ageDays,
+      viewsPerDay:views/Math.max(1,ageDays),
+    };
+  });
+}
+function searchSeed(title:string){
+  return title.replace(/#\w+/g,' ').replace(/[^a-zA-Z0-9\s-]/g,' ').replace(/\s+/g,' ').trim().split(' ').slice(0,7).join(' ');
+}
+
 export async function demandContext(userId:string):Promise<EditorialContext>{
-  if(!await tokenFor(userId))return {demandSignals:[],recentVideos:await recentEditorialVideos(userId)};
+  if(!await tokenFor(userId))return {demandSignals:[],recentVideos:await recentEditorialVideos(userId),blockedTopics:[]};
   const access=await accessToken(userId);
-  const queries=['n8n AI automation','AI agent workflow reliability','business workflow automation'];
-  const signals:string[]=[];
+  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);
+  const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);
+  const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);
+  const queries=[...new Set([
+    ...winners.map(x=>searchSeed(x.title)).filter(Boolean),
+    'AI agent workflow reliability','MCP security tutorial','AI software development workflow',
+    'AI design accessibility workflow','business workflow automation',
+  ])].slice(0,7);
+  const signals:string[]=[
+    ...winners.map(x=>`CHANNEL WINNER: ${x.title} | ${x.views} views | ${x.viewsPerDay.toFixed(1)} views/day; adapt the viewer problem and proof pattern, never copy the package`),
+    ...stale.map(x=>`BLOCKED AFTER 7 DAYS AT ZERO VIEWS: ${x.title}; do not reuse this topic or a semantic variant`),
+  ];
+  const publishedAfter=new Date(Date.now()-45*86_400_000).toISOString();
   for(const query of queries){
-    const response=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(query)}`,{headers:{authorization:`Bearer ${access}`}});
+    const params=new URLSearchParams({part:'snippet',type:'video',maxResults:'5',order:'viewCount',publishedAfter,q:query});
+    const response=await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`,{headers:{authorization:`Bearer ${access}`}});
     if(!response.ok)continue;
-    const data=await response.json() as any;signals.push(query,...(data.items||[]).map((x:any)=>x.snippet?.title||'').filter(Boolean));
+    const data=await response.json() as any;
+    signals.push(`CURRENT SEARCH: ${query}`,...(data.items||[]).map((x:any)=>x.snippet?.title||'').filter(Boolean));
   }
   const commitments=await engagementCommitments(userId).catch(()=>[]);
   const pending=commitments.filter(x=>x.status==='pending').map(x=>`AUDIENCE COMMITMENT (priority): deliver ${x.trigger} requested on ${x.sourceTitle}`);
-  return {demandSignals:[...pending,...signals].slice(0,25),recentVideos:await recentEditorialVideos(userId)};
+  return {
+    demandSignals:[...pending,...signals].slice(0,40),
+    recentVideos:await recentEditorialVideos(userId),
+    blockedTopics:stale.map(x=>x.title),
+  };
 }
 async function recentEditorialVideos(userId:string){
   const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:30});
-  return items.filter(x=>x.automationKey?.startsWith(EDITORIAL_PREFIX)).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,20).map(x=>({title:x.title,transcript:x.transcript}));
+  return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,20).map(x=>({title:x.title,transcript:x.transcript}));
+}
+
+function optimizeMetadata(title:string,description:string,inputTags:string[],short:boolean){
+  const cleanTitle=title.replace(/\s+/g,' ').trim().slice(0,100);
+  const baseDescription=description.replace(/(^|\s)#[A-Za-z0-9_-]+/g,' ').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  const haystack=`${cleanTitle} ${baseDescription}`.toLowerCase();
+  const unique=(values:string[])=>[...new Set(values.map(x=>x.replace(/^#/,'').replace(/\s+/g,' ').trim()).filter(Boolean))];
+  const tags=unique(inputTags).filter(tag=>tag.toLowerCase()==='shorts'||tag.toLowerCase().split(/[^a-z0-9]+/).some(word=>word.length>2&&haystack.includes(word)));
+  const concepts:Array<[RegExp,string,string]>= [
+    [/\b(ai|artificial intelligence)\b/i,'AI','AI'],
+    [/\bagents?\b/i,'AI agents','AIAgents'],
+    [/\bautomation\b/i,'automation','Automation'],
+    [/\bmcp\b/i,'MCP','MCP'],
+    [/\bsecurity|sandbox|secret|vulnerab/i,'AI security','AISecurity'],
+    [/\btest|testing|quality gate/i,'software testing','SoftwareTesting'],
+    [/\bcode|coding|developer|software/i,'software development','SoftwareDevelopment'],
+    [/\bdesign|ui|ux|accessibility/i,'AI design','AIDesign'],
+    [/\bn8n\b/i,'n8n','n8n'],
+  ];
+  const hashtags:string[]=[];
+  for(const [pattern,tag,hash] of concepts)if(pattern.test(haystack)){tags.push(tag);hashtags.push(hash);}
+  if(short){tags.push('Shorts');hashtags.push('Shorts');}
+  const finalTags=unique(tags).slice(0,12);
+  const finalHashes=unique(hashtags).slice(0,5).map(x=>`#${x.replace(/[^A-Za-z0-9_]/g,'')}`);
+  const significant=cleanTitle.toLowerCase().replace(/#\w+/g,'').split(/[^a-z0-9]+/).filter(x=>x.length>3&&!['this','that','with','from','before','after','your'].includes(x));
+  const opening=baseDescription.slice(0,240).toLowerCase();
+  const searchAligned=significant.slice(0,4).filter(x=>opening.includes(x)).length>=2;
+  const alignedDescription=searchAligned?baseDescription:`Demonstration: ${cleanTitle.replace(/#\w+/g,'').trim()}.\n\n${baseDescription}`;
+  return {title:cleanTitle,description:`${alignedDescription}\n\n${finalHashes.join(' ')}`.trim().slice(0,5000),tags:finalTags};
 }
 
 export async function ensurePublishJob(userId:string,spec?:PublishSpec){
@@ -130,8 +205,9 @@ export async function ensurePublishJob(userId:string,spec?:PublishSpec){
   const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:50});
   if(items.some(x=>x.automationKey===spec.automationKey))return;
   const t=new Date().toISOString();
+  const metadata=optimizeMetadata(spec.title,spec.description,spec.tags,/short/i.test(spec.title)||/short/i.test(spec.automationKey));
   const record:PublishJob={
-    userId,automationKey:spec.automationKey,title:spec.title,description:spec.description,tags:spec.tags,
+    userId,automationKey:spec.automationKey,title:metadata.title,description:metadata.description,tags:metadata.tags,
     privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript,status:'pending',uploadedBytes:0,retryCount:0,
     thumbnailStatus:'pending',createdAt:t,updatedAt:t,
@@ -147,8 +223,9 @@ export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublis
   if(!video||video.content_type!=='video/mp4'||Number(video.bytes)<1_000_000)throw new Error('Reviewed video asset missing or invalid');
   if(!thumb||!/^image\/(jpeg|png)$/.test(thumb.content_type)||Number(thumb.bytes)<10_000)throw new Error('Reviewed thumbnail asset missing or invalid');
   const t=new Date().toISOString();
+  const metadata=optimizeMetadata(spec.title,spec.description,spec.tags,/short/i.test(spec.title)||/short/i.test(spec.key));
   const record:PublishJob={
-    userId,automationKey,title:spec.title.slice(0,100),description:spec.description.slice(0,5000),tags:spec.tags.slice(0,12),
+    userId,automationKey,title:metadata.title,description:metadata.description,tags:metadata.tags,
     privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript.slice(0,20000),status:'pending',
     uploadedBytes:0,retryCount:0,thumbnailStatus:'pending',publishAt:spec.publishAt,createdAt:t,updatedAt:t,
@@ -325,19 +402,7 @@ export async function channelAnalytics(userId:string,days=28){
   const channel=channelData.items?.[0];
   if(!channel)throw new Error('YouTube channel not found');
 
-  const jobs=(await listJobs(userId)).filter(x=>x.youtubeVideoId);
-  const ids=[...new Set(jobs.map(x=>x.youtubeVideoId as string))].slice(0,50);
-  let videos:any[]=[];
-  if(ids.length){
-    const response=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=id,snippet,statistics,status&id=${encodeURIComponent(ids.join(','))}`,{headers:{authorization:`Bearer ${access}`}});
-    const data=await response.json() as any;
-    if(response.ok)videos=(data.items||[]).map((item:any)=>({
-      id:item.id,title:item.snippet?.title||'',publishedAt:item.snippet?.publishedAt||null,
-      privacyStatus:item.status?.privacyStatus||'unknown',
-      views:Number(item.statistics?.viewCount||0),likes:Number(item.statistics?.likeCount||0),
-      comments:Number(item.statistics?.commentCount||0),url:`https://www.youtube.com/watch?v=${item.id}`,
-    }));
-  }
+  const videos=await managedVideoMetrics(userId,access);
 
   const end=new Date();end.setUTCDate(end.getUTCDate()-1);
   const start=new Date(end);start.setUTCDate(start.getUTCDate()-Math.max(1,Math.min(days,90))+1);
@@ -355,7 +420,8 @@ export async function channelAnalytics(userId:string,days=28){
   return {
     channel:{id:channel.id,title:channel.snippet?.title||'',subscribers:Number(channel.statistics?.subscriberCount||0),views:Number(channel.statistics?.viewCount||0),videos:Number(channel.statistics?.videoCount||0),hiddenSubscribers:Boolean(channel.statistics?.hiddenSubscriberCount)},
     period,
-    topVideos:videos.sort((a,b)=>b.views-a.views).slice(0,8),
+    topVideos:[...videos].sort((a,b)=>b.views-a.views).slice(0,8),
+    staleZeroViewVideos:videos.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7).sort((a,b)=>b.ageDays-a.ageDays),
     totals:{views:videos.reduce((n,x)=>n+x.views,0),likes:videos.reduce((n,x)=>n+x.likes,0),comments:videos.reduce((n,x)=>n+x.comments,0)},
     updatedAt:new Date().toISOString(),
   };
