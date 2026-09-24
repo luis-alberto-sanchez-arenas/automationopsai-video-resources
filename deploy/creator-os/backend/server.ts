@@ -71,6 +71,7 @@ app.get('/api/public/analytics-status',async(_req,res,next)=>{
     res.json({
       ok:true,
       periodAvailable:Boolean(analytics?.period?.available),
+      staleZeroViewCount:analytics?.staleZeroViewVideos?.length||0,
       reason:analytics?.period?.available?null:'youtube-analytics-unavailable',
       updatedAt:analytics?.updatedAt||null,
     });
