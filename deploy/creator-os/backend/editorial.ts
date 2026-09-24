@@ -53,7 +53,7 @@ type Project={
 };
 type SceneRecord=ScenePlan&{userId:string;projectKey:string;status:'planned'|'rendered'|'failed';retryCount:number;segmentStoragePath?:string;bytes?:number;lastError?:string;createdAt:string;updatedAt:string};
 
-export type EditorialContext={demandSignals:string[];recentVideos:Array<{title:string;transcript?:string}>};
+export type EditorialContext={demandSignals:string[];recentVideos:Array<{title:string;transcript?:string}>;blockedTopics?:string[]};
 export type PublishSpec={automationKey:string;title:string;description:string;tags:string[];transcript:string;preparedStoragePath:string;thumbnailStoragePath:string};
 export type EditorialStatus={projectKey?:string;stage:Stage|'idle'|'cooldown';title?:string;problem?:string;revision?:number;qualityScore?:number;blockers?:string[];renderedScenes?:number;totalScenes?:number;youtubeUrl?:string;lastError?:string;createdAt?:string;updatedAt?:string;nextAction:string};
 
@@ -63,6 +63,15 @@ function score(v:unknown){const n=Number(v);return Number.isFinite(n)?Math.max(0
 function stripHtml(v:string){return clean(v.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&'));}
 function words(v:string){return v.trim().split(/\s+/).filter(Boolean).length;}
 function hoursSince(v?:string){return v?Math.max(0,(Date.now()-new Date(v).getTime())/3600000):Infinity;}
+const TOPIC_STOP=new Set(['about','after','agent','agents','before','build','building','from','guide','how','into','shorts','that','this','using','video','with','your','para','como','este','esta']);
+function topicTokens(value:string){
+  return new Set(value.toLowerCase().replace(/#\w+/g,' ').split(/[^a-z0-9]+/).filter(x=>x.length>2&&!TOPIC_STOP.has(x)));
+}
+function topicSimilarity(left:string,right:string){
+  const a=topicTokens(left),b=topicTokens(right);if(!a.size||!b.size)return 0;
+  const common=[...a].filter(x=>b.has(x)).length;
+  return common/Math.min(a.size,b.size);
+}
 
 async function fetchSources(){
   const results:Array<Source|null>=await Promise.all(SOURCES.map(async ([key,title,url]):Promise<Source|null>=>{
@@ -114,7 +123,7 @@ async function doResearch(p:Stored<Project>,ctx:EditorialContext){
   if(sources.length<3)throw new Error(`Only ${sources.length} official sources available; refusing to invent a tutorial`);
   const result=await generateJson<{opportunities:Opportunity[]}>({
     system:'You are a senior technical YouTube editor. Find concrete practitioner problems across AI automation, agents, software architecture, cybersecurity, productivity, AI-assisted design, design systems, accessibility and design-to-code. Reject hype, generic tool lists, income claims, trend-only topics and topics that cannot be demonstrated. A popular topic is insufficient: require a specific competitive gap that existing tutorials usually omit. Use only supplied source keys.',
-    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,25).join('\n')}\n\nRecent titles to avoid:\n${ctx.recentVideos.slice(0,20).map(x=>x.title).join('\n')}\n\nOfficial sources:\n${sourceText(sources)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
+    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,40).join('\n')}\n\nRecent titles to avoid repeating:\n${ctx.recentVideos.slice(0,20).map(x=>x.title).join('\n')}\n\nTopics blocked because they remained at zero views for at least seven days:\n${(ctx.blockedTopics||[]).join('\n')||'None'}\n\nOfficial sources:\n${sourceText(sources)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Never propose a blocked topic or a semantic variant. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
     schema:RESEARCH_SCHEMA,temperature:.35,maxTokens:4000,
   });
   const keys=new Set(sources.map(x=>x.key));
@@ -129,11 +138,14 @@ async function selectProblem(p:Stored<Project>,ctx:EditorialContext){
   if(!p.research)throw new Error('Research missing');
   const r=await generateJson<any>({
     system:'Select one problem for a rigorous technical tutorial. Favor utility, a real implementation/debug artifact, evidence and meaningful distinction from recent videos. Reject generic AI hype.',
-    prompt:`Opportunities:\n${p.research.opportunities.map((x,i)=>`${i}. ${JSON.stringify(x)}`).join('\n')}\n\nRecent titles:\n${ctx.recentVideos.map(x=>x.title).slice(0,20).join('\n')}`,
+    prompt:`Opportunities:\n${p.research.opportunities.map((x,i)=>`${i}. ${JSON.stringify(x)}`).join('\n')}\n\nRecent titles:\n${ctx.recentVideos.map(x=>x.title).slice(0,20).join('\n')}\n\nHard-blocked zero-view topics:\n${(ctx.blockedTopics||[]).join('\n')||'None'}`,
     schema:SELECT_SCHEMA,maxTokens:1800,temperature:.2,
   });
   const selected=p.research.opportunities[r.selectedIndex];
   if(!selected)throw new Error('Invalid selected opportunity');
+  const proposed=`${selected.problem} ${r.workingTitle}`;
+  const blocked=(ctx.blockedTopics||[]).find(title=>topicSimilarity(proposed,title)>=0.5);
+  if(blocked)throw new Error(`Selected topic is too similar to a video with zero views after seven days: ${blocked}`);
   p.selected={...selected,promise:clean(r.promise),viewerOutcome:clean(r.viewerOutcome),scope:r.scope.map(clean),exclusions:r.exclusions.map(clean),workingTitle:clean(r.workingTitle).slice(0,100)};
   p.stage='outline';p.lastError=undefined;await saveProject(p);
 }
@@ -161,7 +173,7 @@ async function writeScript(p:Stored<Project>){
   const sources=p.research.sources.filter(x=>allowed.has(x.key));
   const r=await generateJson<any>({
     system:'Write like an experienced engineer teaching a real implementation. Use concrete examples, explicit failure cases, testing, debugging, observability and tradeoffs. Never fabricate product behavior, benchmarks, versions, API fields, prices or guarantees. No generic AI-copy transitions.',
-    prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${sourceText(sources)}\n\nWrite 1100-1700 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. Return a ledger of every material factual/product claim with source keys.`,
+    prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${sourceText(sources)}\n\nWrite 1100-1700 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. The first 200 description characters must naturally contain the primary viewer search phrase. Return 5-12 relevant search tags and 3-5 precise hashtags in the description; use #Shorts only for an actual Short. Never add unrelated or trending-only hashtags. Return a ledger of every material factual/product claim with source keys.`,
     schema:SCRIPT_SCHEMA,maxTokens:8500,temperature:.28,
   });
   const wc=words(r.script);
