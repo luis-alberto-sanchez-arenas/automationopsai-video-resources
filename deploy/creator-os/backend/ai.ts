@@ -10,7 +10,18 @@ const providerCooldownUntil=new Map<string,number>();
 function cooling(provider:string){return (providerCooldownUntil.get(provider)||0)>Date.now();}
 function cool(provider:string,error:unknown){
   const message=error instanceof Error?error.message:String(error);
-  if(/\b(429|503)\b|RESOURCE_EXHAUSTED|UNAVAILABLE/i.test(message))providerCooldownUntil.set(provider,Date.now()+10*60_000);
+  // Billing/suspension failures do not recover on the next minute. Retrying
+  // them continuously wastes free quota on the remaining providers and fills
+  // the operational log with noise.
+  if(/\b402\b|insufficient balance|suspended due to insufficient/i.test(message)){
+    providerCooldownUntil.set(provider,Date.now()+24*60*60_000);
+    return;
+  }
+  if(/\b429\b|RESOURCE_EXHAUSTED/i.test(message)){
+    providerCooldownUntil.set(provider,Date.now()+60*60_000);
+    return;
+  }
+  if(/\b503\b|UNAVAILABLE/i.test(message))providerCooldownUntil.set(provider,Date.now()+15*60_000);
 }
 
 function parseJsonText(text:string) {
