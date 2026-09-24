@@ -14,7 +14,7 @@
     publications.insertAdjacentHTML('beforebegin',`<section id="analytics" class="panel insights">
       <div class="insights-head"><div><h2>Rendimiento del canal</h2><div class="sub">Datos reales de YouTube; periodo predeterminado de 28 días.</div></div><div class="insights-actions"><span id="analyticsUpdated" class="pill">Sin actualizar</span><button class="button secondary small" type="button" id="analyticsRefresh">Actualizar métricas</button></div></div>
       <div id="insightCards" class="insights-grid"><div class="empty">Esperando acceso al canal…</div></div>
-      <div class="analytics-body"><div class="subpanel"><div class="subpanel-title"><h3>Videos con más vistas</h3><span id="managedTotals" class="sub"></span></div><div id="topVideos" class="empty">Sin datos.</div></div><div class="subpanel"><div class="subpanel-title"><h3>Incidencias de publicación</h3><span id="incidentCount" class="pill">0</span></div><div id="incidentList" class="empty">Sin incidencias.</div></div><div class="subpanel commitments"><div class="subpanel-title"><h3>Compromisos con la audiencia</h3><span id="commitmentCount" class="pill">0</span></div><div id="commitmentList" class="empty">Sin solicitudes detectadas.</div></div></div>
+      <div class="analytics-body"><div class="subpanel"><div class="subpanel-title"><h3>Videos con más vistas</h3><span id="managedTotals" class="sub"></span></div><div id="topVideos" class="empty">Sin datos.</div></div><div class="subpanel"><div class="subpanel-title"><h3>Incidencias de publicación</h3><span id="incidentCount" class="pill">0</span></div><div id="incidentList" class="empty">Sin incidencias.</div></div><div class="subpanel stale-topics"><div class="subpanel-title"><h3>Temas bloqueados por baja relevancia</h3><span id="staleCount" class="pill">0</span></div><div id="staleTopics" class="empty">Ningún video público lleva siete días con cero vistas.</div></div><div class="subpanel commitments"><div class="subpanel-title"><h3>Compromisos con la audiencia</h3><span id="commitmentCount" class="pill">0</span></div><div id="commitmentList" class="empty">Sin solicitudes detectadas.</div></div></div>
     </section>`);
     document.getElementById('analyticsRefresh').addEventListener('click',load);
   }
@@ -29,6 +29,10 @@
     const videos=data.topVideos||[];
     document.getElementById('topVideos').className=videos.length?'':'empty';
     document.getElementById('topVideos').innerHTML=videos.map((video,index)=>`<div class="video-rank"><span class="rank">${index+1}</span><a href="${esc(video.url)}" target="_blank" rel="noreferrer" title="${esc(video.title)}">${esc(video.title)}</a><span class="metric"><b>${number(video.views)}</b><small>Vistas</small></span><span class="metric"><b>${number(video.likes)}</b><small>Likes</small></span><span class="metric"><b>${number(video.comments)}</b><small>Comentarios</small></span></div>`).join('')||'Todavía no hay videos vinculados.';
+    const stale=data.staleZeroViewVideos||[];
+    document.getElementById('staleCount').textContent=String(stale.length);
+    document.getElementById('staleTopics').className=stale.length?'':'empty';
+    document.getElementById('staleTopics').innerHTML=stale.map(video=>`<div class="stale-topic"><a href="${esc(video.url)}" target="_blank" rel="noreferrer">${esc(video.title)}</a><span>${Math.floor(Number(video.ageDays)||0)} días · 0 vistas · excluido de nuevas propuestas</span></div>`).join('')||'Ningún video público lleva siete días con cero vistas.';
     document.getElementById('managedTotals').textContent=`${number(data.totals?.views)} vistas · ${number(data.totals?.likes)} likes`;
     document.getElementById('analyticsUpdated').textContent=`Actualizado ${new Date(data.updatedAt).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
     const old=document.getElementById('analyticsPermission');if(old)old.remove();
