@@ -52,6 +52,19 @@ app.get('/api/public/status',async(_req,res,next)=>{
   }catch(e){next(e);}
 });
 
+app.get('/api/public/analytics-status',async(_req,res,next)=>{
+  try{
+    const analytics=await channelAnalytics(USER_ID,28);
+    res.set('Cache-Control','no-store');
+    res.json({
+      ok:true,
+      periodAvailable:Boolean(analytics?.period?.available),
+      reason:analytics?.period?.available?null:'youtube-analytics-unavailable',
+      updatedAt:analytics?.updatedAt||null,
+    });
+  }catch(e){next(e);}
+});
+
 app.get('/api/status',requireAdmin,async(_req,res,next)=>{
   try{
     const [editorial,jobs,connected,channel,tiktokJobs,tiktokIsConnected]=await Promise.all([
