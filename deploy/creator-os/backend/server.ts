@@ -1,7 +1,7 @@
 import express from 'express';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
-import { initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
+import { db, initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
 import { advanceEditorial, getEditorialStatus } from './editorial.js';
 import {
   channelAnalytics,channelSummary,demandContext,engagementCommitments,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
@@ -253,6 +253,23 @@ app.get('/api/automation-upload/status',requireAutomationUpload,async(req,res,ne
     const key=reviewedKey(req.query.key),job=(await listJobs(USER_ID)).find(x=>x.automationKey===`reviewed-${key}`);
     if(!job)return res.status(404).json({error:'Upload job not found'});
     res.json({id:job.id,status:job.status,privacyStatus:job.privacyStatus,youtubeUrl:job.youtubeUrl,lastError:job.lastError,uploadedBytes:job.uploadedBytes,totalBytes:job.totalBytes,thumbnailStatus:job.thumbnailStatus});
+  }catch(e){next(e);}
+});
+app.get('/api/automation-upload/analytics',requireAutomationUpload,async(req,res,next)=>{
+  try{res.json(await channelAnalytics(USER_ID,Number(req.query.days||28)));}catch(e){next(e);}
+});
+app.get('/api/automation-upload/health',requireAutomationUpload,async(_req,res,next)=>{
+  try{
+    const [jobs,scheduler]=await Promise.all([
+      listJobs(USER_ID),db.list<any>('scheduler_state_v1',{filter:{userId:USER_ID},limit:1}),
+    ]);
+    const nextSlots=['06:00 short','11:00 standard','15:00 short','22:00 short'];
+    res.json({
+      ok:true,timezone:process.env.SCHEDULE_TIMEZONE||'America/Mexico_City',productionSlots:nextSlots,
+      scheduler:scheduler.items[0]||null,
+      queue:{pending:jobs.filter(x=>x.status==='pending').length,uploading:jobs.filter(x=>x.status==='uploading').length,failed:jobs.filter(x=>x.status==='failed').length},
+      recent:jobs.slice(0,12).map(x=>({id:x.id,title:x.title,status:x.status,privacyStatus:x.privacyStatus,publishAt:x.publishAt,youtubeUrl:x.youtubeUrl,lastError:x.lastError,updatedAt:x.updatedAt})),
+    });
   }catch(e){next(e);}
 });
 
