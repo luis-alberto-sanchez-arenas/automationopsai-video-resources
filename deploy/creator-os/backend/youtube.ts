@@ -237,6 +237,31 @@ export async function listJobs(userId:string){
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function repairPublishedDiscoveryMetadata(userId:string){
+  const access=await accessToken(userId);
+  const jobs=(await listJobs(userId)).filter(x=>x.status==='published'&&x.youtubeVideoId);
+  let updated=0,unchanged=0;const failed:Array<{id:string;error:string}>=[];
+  for(const job of jobs){
+    const metadata=optimizeMetadata(job.title,job.description,job.tags,/short/i.test(job.title)||/short/i.test(job.automationKey));
+    const same=job.title===metadata.title&&job.description===metadata.description&&JSON.stringify(job.tags)===JSON.stringify(metadata.tags);
+    if(same){unchanged++;continue;}
+    const response=await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet',{
+      method:'PUT',headers:{authorization:`Bearer ${access}`,'content-type':'application/json'},
+      body:JSON.stringify({id:job.youtubeVideoId,snippet:{
+        title:metadata.title,description:metadata.description,tags:metadata.tags,
+        categoryId:'28',defaultLanguage:'en',defaultAudioLanguage:'en',
+      }}),
+    });
+    if(!response.ok){
+      failed.push({id:job.youtubeVideoId as string,error:`HTTP ${response.status}: ${(await response.text()).slice(0,240)}`});
+      continue;
+    }
+    job.title=metadata.title;job.description=metadata.description;job.tags=metadata.tags;
+    await saveJob(job);updated++;
+  }
+  return {checked:jobs.length,updated,unchanged,failed};
+}
+
 export async function retryJob(userId:string,jobId:string){
   const job=(await listJobs(userId)).find(x=>x.id===jobId);
   if(!job)throw new Error('Publish job not found');
