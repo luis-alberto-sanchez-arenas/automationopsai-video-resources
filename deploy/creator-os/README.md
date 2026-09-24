@@ -4,9 +4,12 @@ A clean migration of the professional YouTube editorial pipeline away from AppDe
 
 ## Production path
 
-`official-source research → problem selection → outline → technical script → hostile fact-check → proof-oriented storyboard → strict Quality Gate → neural narration → FFmpeg rendering → assembly → private YouTube upload → processing verification → custom thumbnail → unlisted review`
+`analytics → official-source research → competitive gap → topic-specific renderer → strict audiovisual QA → reviewed-master upload → private YouTube processing → custom thumbnail → scheduled/public release`
 
-There is deliberately no automatic transition to public.
+The generic built-in editorial renderer is disabled by default because its
+card-based visual language is not sufficient for public monetization-oriented
+releases. Public automation accepts only reviewed masters produced by a
+topic-specific renderer and passing the complete QA manifest.
 
 ## Removed from the AppDeploy version
 
@@ -19,11 +22,12 @@ There is deliberately no automatic transition to public.
 
 ## Quality invariants
 
-- 1 long-form video at most every 72 hours
+- release targets: Shorts at 06:00, 15:00 and 22:00; standard video at 11:00 (America/Mexico_City)
+- missed slots never release a lower-quality fallback; the reviewed master remains queued
 - 1000–1900-word verified script
 - 10–12 scenes
-- >=60% diagram/code/terminal scenes
-- <=15% B-roll
+- >=75% demonstrative/action scenes
+- <=10% licensed B-roll; prefer original execution capture and procedural motion
 - factual claims must pass >=70 confidence and official-source support
 - title similarity <0.55
 - script 4-gram similarity <0.14
@@ -79,7 +83,7 @@ Use `SELF_ONLY` and keep mirroring disabled while testing an unaudited client. P
 
 ## AI provider
 
-Preferred starter path: Gemini API through `GEMINI_API_KEY`. The provider is configurable. An OpenAI-compatible endpoint can be used instead.
+Preferred starter path: Gemini API through `GEMINI_API_KEY`. The provider is configurable. An OpenAI-compatible endpoint can be used instead. Billing/quota failures receive long circuit-breaker cooldowns; the worker must never retry a depleted provider every minute.
 
 ## Deployment safety
 
