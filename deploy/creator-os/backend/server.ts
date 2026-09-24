@@ -13,12 +13,24 @@ import {
 } from './tiktok.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
+const AUTO_EDITORIAL_ENABLED=process.env.AUTO_EDITORIAL_ENABLED==='true';
 await initPlatform();
 
 const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'2mb'}));
 app.get('/_storage',serveBlob);
+
+function dashboardEditorial(editorial:Awaited<ReturnType<typeof getEditorialStatus>>){
+  if(AUTO_EDITORIAL_ENABLED)return editorial;
+  return {
+    ...editorial,
+    stage:'idle' as const,
+    projectKey:undefined,title:undefined,problem:undefined,qualityScore:undefined,
+    blockers:[],renderedScenes:0,totalScenes:0,lastError:undefined,
+    nextAction:'Producción genérica desactivada; esperando un máster específico que apruebe QA.',
+  };
+}
 
 const TIKTOK_VERIFICATION_SIGNATURES:Record<string,string>={
   'tiktok37RHG5KH6QhxrjEXDpWT7nse8ImBiY39.txt':'tiktok-developers-site-verification=37RHG5KH6QhxrjEXDpWT7nse8ImBiY39',
@@ -42,7 +54,7 @@ app.get('/api/_healthcheck',(_req,res)=>res.json({ok:true,service:'AutomationOps
 
 app.get('/api/public/status',async(_req,res,next)=>{
   try{
-    const editorial=await getEditorialStatus(USER_ID);
+    const editorial=dashboardEditorial(await getEditorialStatus(USER_ID));
     res.json({
       editorial:{stage:editorial.stage,title:editorial.title,qualityScore:editorial.qualityScore,renderedScenes:editorial.renderedScenes,totalScenes:editorial.totalScenes,nextAction:editorial.nextAction,youtubeUrl:editorial.youtubeUrl},
       youtubeConfigured:Boolean(process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET),
@@ -67,10 +79,11 @@ app.get('/api/public/analytics-status',async(_req,res,next)=>{
 
 app.get('/api/status',requireAdmin,async(_req,res,next)=>{
   try{
-    const [editorial,jobs,connected,channel,tiktokJobs,tiktokIsConnected]=await Promise.all([
+    const [rawEditorial,jobs,connected,channel,tiktokJobs,tiktokIsConnected]=await Promise.all([
       getEditorialStatus(USER_ID),listJobs(USER_ID),youtubeConnected(USER_ID),channelSummary(USER_ID).catch(()=>null),
       listTikTokJobs(USER_ID),tiktokConnected(USER_ID),
     ]);
+    const editorial=dashboardEditorial(rawEditorial);
     const summary={
       total:jobs.length,
       published:jobs.filter(x=>x.status==='published').length,
