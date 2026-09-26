@@ -1,0 +1,24 @@
+{
+  "title": "AI Accessibility Audit: Catch What Axe Misses #Shorts",
+  "description": "AI accessibility audit: run a two-part CI gate that catches four deterministic issues, then proves every keyboard focus stop remains visible. Reproduce the exact synthetic fixture: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources/tree/main/examples/agentic-accessibility-gate-2026-09-26\n\nThe demo shows 4 → 0 automated violations and 3/6 → 6/6 visible keyboard stops. It does not claim WCAG conformance: manual and assistive-technology review remain required.\n\nOfficial references:\nhttps://www.w3.org/WAI/test-evaluate/\nhttps://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html\nhttps://github.com/dequelabs/axe-core\n\n#AIAccessibility #AccessibilityTesting #WCAG22 #Shorts",
+  "tags": [
+    "AI accessibility audit",
+    "accessibility testing",
+    "WCAG 2.2",
+    "axe-core",
+    "keyboard accessibility",
+    "AI generated UI",
+    "Playwright accessibility",
+    "frontend CI",
+    "web accessibility"
+  ],
+  "hashtags": [
+    "#AIAccessibility",
+    "#AccessibilityTesting",
+    "#WCAG22",
+    "#Shorts"
+  ],
+  "searchQuery": "AI accessibility audit",
+  "privacyStatus": "public",
+  "containsSyntheticMedia": true
+}

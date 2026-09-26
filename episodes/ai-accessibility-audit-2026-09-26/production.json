@@ -1,0 +1,47 @@
+{
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "durationSeconds": 50.7
+  },
+  "narration": {
+    "engine": "Kokoro ONNX local",
+    "voice": "af_heart",
+    "license": "Apache-2.0",
+    "generatedBeforeTimeline": true,
+    "timingBasis": "measured per-phrase WAV samples"
+  },
+  "visuals": {
+    "renderer": "renderers/2026-09-26-agentic-accessibility-short.py",
+    "origin": "original procedural animation",
+    "bRollPercent": 0,
+    "demonstrationDensityPercent": 100,
+    "externalAssets": []
+  },
+  "copyright": {
+    "music": "none",
+    "stockFootage": "none",
+    "logosOrCharacters": "none",
+    "fonts": "DejaVu system fonts",
+    "code": "original MIT-licensed repository source"
+  },
+  "authenticityReview": {
+    "massProducedTemplate": false,
+    "reusedScript": false,
+    "reusedDemo": false,
+    "realisticSyntheticScene": false,
+    "note": "Procedural software UI visualization; synthetic-media flag retained conservatively."
+  },
+  "qa": {
+    "passed": true,
+    "integratedLufs": -16.28,
+    "truePeakDbtp": -1.43,
+    "blackSegments": 0,
+    "longSilences": 0,
+    "safeZonesReviewed": true,
+    "contactSheetReviewed": true,
+    "thumbnailReviewed": true,
+    "proofReproduced": true
+  }
+}

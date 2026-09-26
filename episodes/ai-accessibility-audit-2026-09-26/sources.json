@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-09-26T21:00:00Z",
+  "claims": [
+    {
+      "claim": "No evaluation tool alone can determine whether a site meets accessibility standards; knowledgeable human evaluation is required.",
+      "source": "https://www.w3.org/WAI/test-evaluate/",
+      "publisher": "W3C Web Accessibility Initiative",
+      "type": "official-standard-guidance"
+    },
+    {
+      "claim": "WCAG 2.2 Focus Not Obscured (Minimum) requires a component receiving keyboard focus to remain at least partially visible.",
+      "source": "https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html",
+      "publisher": "W3C Web Accessibility Initiative",
+      "type": "official-standard-guidance"
+    },
+    {
+      "claim": "axe-core is an automated accessibility testing engine and reports incomplete cases for manual review.",
+      "source": "https://github.com/dequelabs/axe-core",
+      "publisher": "Deque Systems",
+      "type": "official-project-documentation"
+    }
+  ],
+  "demandSignals": [
+    {
+      "signal": "Recent research specifically evaluates agentic WCAG auditing, while current YouTube search results expose little exact-match Short-form coverage.",
+      "source": "https://arxiv.org/abs/2609.09379",
+      "published": "2026-09-08",
+      "use": "topic demand and content-gap signal; not used as a normative technical source"
+    }
+  ]
+}

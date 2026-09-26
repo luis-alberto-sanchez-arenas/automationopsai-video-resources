@@ -2,6 +2,20 @@
 
 Examples and original renderer code for AutomationOpsAI tutorials.
 
+## AI accessibility audit gate
+
+The 2026-09-26 Short demonstrates why an automated zero is not accessibility
+conformance. Its deterministic fixture moves from four to zero automated
+violations and from three-of-six to six-of-six visible keyboard focus stops,
+while preserving manual review as a required gate.
+
+```sh
+node examples/agentic-accessibility-gate-2026-09-26/demo.mjs
+```
+
+Production metadata, official sources, rights provenance and QA evidence live
+in [`episodes/ai-accessibility-audit-2026-09-26/`](episodes/ai-accessibility-audit-2026-09-26/).
+
 ## JSON parsing tutorial
 
 [Watch the published tutorial](https://www.youtube.com/watch?v=jMe7vz0CZ5w) · [Run the companion exercise](examples/n8n-ai-json-parser/)
