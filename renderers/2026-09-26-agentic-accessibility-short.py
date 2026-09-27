@@ -17,7 +17,10 @@ W, H, FPS = 540, 960, 30
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
-INK, PAPER, CYAN, LIME, CORAL, VIOLET = "#071015", "#EDF8F6", "#14D9C5", "#B7F34A", "#FF665A", "#9C7BFF"
+# Warm print-lab palette. Deliberately unrelated to the neon/dark visual system
+# used by the earlier contrast episode.
+INK, PAPER, CYAN, LIME, CORAL, VIOLET = "#14213D", "#F7F3E8", "#2F5BEA", "#1B7F5C", "#E4572E", "#F2C14E"
+SURFACE, GRID, MUTED = "#FFFDF7", "#D6D0C1", "#5C6475"
 
 SEGMENTS = (
     "Your AI generated interface can pass unit tests and still lock out keyboard users. Audit the behavior, not the screenshot.",
@@ -57,57 +60,59 @@ def label(draw, xy, text, size, color=PAPER, anchor="la", mono=False):
     draw.text(xy, text, font=ff(size, True, mono), fill=color, anchor=anchor)
 
 
-def glow_panel(image, box, color=CYAN, radius=16, fill=(7, 16, 21, 242)):
-    layer = Image.new("RGBA", image.size)
-    ImageDraw.Draw(layer).rounded_rectangle(box, radius, fill=color + "32")
-    image.alpha_composite(layer.filter(ImageFilter.GaussianBlur(11)))
-    ImageDraw.Draw(image).rounded_rectangle(box, radius, fill=fill, outline=color, width=2)
+def glow_panel(image, box, color=CYAN, radius=10, fill=SURFACE):
+    # Offset ink shadow evokes a screen-printed engineering notebook, not glass UI.
+    draw = ImageDraw.Draw(image)
+    x1, y1, x2, y2 = box
+    draw.rounded_rectangle((x1 + 7, y1 + 7, x2 + 7, y2 + 7), radius, fill=INK)
+    draw.rounded_rectangle(box, radius, fill=fill, outline=color, width=3)
 
 
 def base(t):
-    image = Image.new("RGBA", (W, H), INK)
+    image = Image.new("RGBA", (W, H), PAPER)
     draw = ImageDraw.Draw(image, "RGBA")
-    # A moving causal data path; all effects remain behind UI and captions.
-    for lane in range(8):
-        y = 100 + lane * 82
-        draw.line((28, y, 512, y), fill="#1E746950", width=2)
-        x = 28 + ((t * (44 + lane * 4) + lane * 67) % 484)
-        draw.ellipse((x - 3, y - 3, x + 3, y + 3), fill=CYAN + "A0")
+    # Blueprint grid plus one moving evidence rail. Motion is causal and stays
+    # behind the browser/terminal/text masks.
+    for x in range(0, W, 36): draw.line((x, 0, x, H), fill=GRID + "66", width=1)
+    for y in range(0, H, 36): draw.line((0, y, W, y), fill=GRID + "66", width=1)
+    draw.line((22, 96, 22, 790), fill=CORAL, width=5)
+    pulse_y = 105 + ((t * 96) % 670)
+    draw.ellipse((13, pulse_y - 9, 31, pulse_y + 9), fill=VIOLET, outline=INK, width=2)
     return image
 
 
 def browser_shell(image, t):
     draw = ImageDraw.Draw(image)
-    glow_panel(image, (25, 92, 515, 718), VIOLET, 20)
-    draw.rounded_rectangle((25, 92, 515, 143), 20, fill="#111C26")
+    glow_panel(image, (38, 96, 505, 718), CYAN, 10)
+    draw.rectangle((38, 96, 505, 146), fill=INK)
     for i, c in enumerate((CORAL, "#FFD06A", LIME)):
         draw.ellipse((48 + i * 21, 112, 59 + i * 21, 123), fill=c)
-    label(draw, (125, 118), "preview.local / checkout", 13, "#AEC6D1", "lm", True)
-    draw.rounded_rectangle((50, 167, 490, 228), 12, fill="#102C34")
-    label(draw, (72, 198), "AI STORE", 20, CYAN, "lm")
-    label(draw, (463, 198), "Cart 2", 15, PAPER, "rm")
-    draw.rounded_rectangle((55, 255, 485, 355), 14, fill="#12202A")
-    label(draw, (77, 285), "Deployment guard", 17, PAPER)
-    label(draw, (77, 320), "Blocks unsafe release paths", 13, "#9BB4BE")
-    draw.rounded_rectangle((55, 380, 260, 457), 14, fill="#132A31")
-    draw.rounded_rectangle((280, 380, 485, 457), 14, fill="#132A31")
-    label(draw, (75, 405), "Audit events", 14, "#AFC4CB")
-    label(draw, (75, 438), "12,408", 24, PAPER)
-    label(draw, (300, 405), "Policy hits", 14, "#AFC4CB")
-    label(draw, (300, 438), "27", 24, PAPER)
-    draw.rounded_rectangle((55, 484, 485, 548), 12, fill="#101C24")
-    label(draw, (78, 516), "Email receipt", 15, PAPER, "lm")
-    draw.rounded_rectangle((55, 570, 485, 646), 14, fill="#17404A")
-    label(draw, (270, 608), "CHECKOUT", 20, PAPER, "mm")
+    label(draw, (125, 121), "preview.local / checkout", 13, PAPER, "lm", True)
+    draw.rectangle((58, 169, 485, 227), fill="#E5EAF8", outline=INK, width=2)
+    label(draw, (75, 198), "RELEASE LAB", 20, INK, "lm")
+    label(draw, (462, 198), "Cart 2", 15, INK, "rm")
+    draw.rectangle((61, 255, 482, 355), fill=SURFACE, outline=INK, width=2)
+    label(draw, (80, 285), "Deployment guard", 17, INK)
+    label(draw, (80, 320), "Blocks unsafe release paths", 13, MUTED)
+    draw.rectangle((61, 380, 257, 457), fill="#FFF0D0", outline=INK, width=2)
+    draw.rectangle((286, 380, 482, 457), fill="#E9F3EE", outline=INK, width=2)
+    label(draw, (78, 405), "Audit events", 14, MUTED)
+    label(draw, (78, 438), "12,408", 24, INK)
+    label(draw, (303, 405), "Policy hits", 14, MUTED)
+    label(draw, (303, 438), "27", 24, INK)
+    draw.rectangle((61, 484, 482, 548), fill=SURFACE, outline=INK, width=2)
+    label(draw, (80, 516), "Email receipt", 15, INK, "lm")
+    draw.rectangle((61, 570, 482, 646), fill=CYAN, outline=INK, width=3)
+    label(draw, (270, 608), "CHECKOUT", 20, "white", "mm")
     # subtle parallax in the page content
     x = 58 + 12 * math.sin(t * .9)
-    draw.rounded_rectangle((x, 662, x + 150, 688), 8, fill=CYAN + "35")
+    draw.rectangle((x, 662, x + 150, 688), fill=VIOLET, outline=INK, width=2)
 
 
 def terminal(image, progress, repaired=False):
     draw = ImageDraw.Draw(image)
-    glow_panel(image, (43, 178, 497, 682), LIME if repaired else CORAL, 18, (3, 10, 14, 247))
-    label(draw, (66, 207), "$ node demo.mjs", 15, "#C5D8DC", mono=True)
+    glow_panel(image, (50, 178, 497, 682), LIME if repaired else CORAL, 8, INK)
+    label(draw, (70, 211), "$ node demo.mjs", 15, PAPER, mono=True)
     before = [
         ("button-name", "FAIL"), ("color-contrast", "FAIL"),
         ("duplicate-label", "FAIL"), ("main-landmark", "FAIL"),
@@ -117,9 +122,9 @@ def terminal(image, progress, repaired=False):
     visible = max(1, min(len(rows), int(progress * len(rows)) + 1))
     for i, (name, result) in enumerate(rows[:visible]):
         y = 270 + i * 78
-        label(draw, (70, y), name, 16, PAPER, mono=True)
+        label(draw, (74, y), name, 16, PAPER, mono=True)
         label(draw, (464, y), result, 16, LIME if repaired else CORAL, "ra", True)
-        draw.line((70, y + 24, 466, y + 24), fill="#25414A", width=1)
+        draw.line((74, y + 24, 466, y + 24), fill="#7D879F", width=1)
     if repaired:
         label(draw, (70, 545), "manual review", 16, PAPER, mono=True)
         label(draw, (464, 545), "REQUIRED", 16, "#FFD06A", "ra", True)
@@ -127,8 +132,8 @@ def terminal(image, progress, repaired=False):
 
 def audit_overlay(image, count, color, title):
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((320, 154, 488, 235), 13, fill="#050C10", outline=color, width=2)
-    label(draw, (338, 177), title, 11, "#A9C0C7")
+    draw.rectangle((318, 158, 486, 239), fill=VIOLET, outline=INK, width=3)
+    label(draw, (335, 181), title, 11, INK)
     label(draw, (338, 218), str(count), 34, color, "ls", True)
 
 
@@ -144,22 +149,22 @@ def focus_path(image, progress, repaired):
             draw.ellipse((x-r, y-r, x+r, y+r), outline=color, width=4)
             label(draw, (x, y-18), str(i+1), 10, color, "mm", True)
     if not repaired:
-        draw.rectangle((25, 598, 515, 718), fill="#02080DEB")
-        label(draw, (270, 635), "STICKY FOOTER", 15, CORAL, "mm", True)
-        label(draw, (270, 665), "CHECKOUT OBSCURED", 19, PAPER, "mm")
-    label(draw, (270, 750), f"KEYBOARD  {'6/6 VISIBLE' if repaired else '3/6 VISIBLE'}", 20,
+        draw.rectangle((38, 598, 505, 718), fill=CORAL)
+        label(draw, (270, 635), "STICKY FOOTER", 15, INK, "mm", True)
+        label(draw, (270, 665), "CHECKOUT OBSCURED", 19, "white", "mm")
+    label(draw, (270, 690), f"KEYBOARD  {'6/6 VISIBLE' if repaired else '3/6 VISIBLE'}", 20,
           LIME if repaired else CORAL, "mm", True)
 
 
 def caption(image, text, progress):
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((24, 818, 516, 940), 18, fill=(2, 7, 10, 250), outline=CYAN, width=2)
+    draw.rectangle((38, 740, 505, 850), fill=INK, outline=CORAL, width=4)
     words = text.split()
     active = min(len(words)-1, max(0, int(progress * len(words))))
     start = max(0, min(active-5, max(0, len(words)-11)))
     selected = words[start:start+11]
     rows = wrap(draw, " ".join(selected), ff(18, True), 440)
-    y = 858 if len(rows) == 1 else 844
+    y = 785 if len(rows) == 1 else 772
     for row in rows[:2]:
         label(draw, (270, y), row, 18, PAPER, "ma")
         y += 31
@@ -167,9 +172,9 @@ def caption(image, text, progress):
 
 def header(image, index):
     draw = ImageDraw.Draw(image)
-    label(draw, (28, 40), "AI ACCESSIBILITY AUDIT", 19, PAPER)
-    draw.rounded_rectangle((394, 25, 512, 68), 12, fill="#10262B", outline=CYAN, width=2)
-    label(draw, (453, 47), f"EVIDENCE {index+1}/7", 11, CYAN, "mm", True)
+    label(draw, (38, 46), "ACCESSIBILITY LAB", 19, INK)
+    draw.rectangle((392, 25, 505, 68), fill=VIOLET, outline=INK, width=3)
+    label(draw, (448, 47), f"TEST {index+1}/7", 11, INK, "mm", True)
 
 
 def scene(image, index, progress, t):
@@ -177,7 +182,7 @@ def scene(image, index, progress, t):
     if index == 0:
         browser_shell(image, t)
         audit_overlay(image, "?", VIOLET, "SCREENSHOT SCORE")
-        label(draw, (270, 775), "BEHAVIOR > APPEARANCE", 21, CYAN, "mm")
+        label(draw, (270, 775), "BEHAVIOR > APPEARANCE", 21, CORAL, "mm")
     elif index == 1:
         terminal(image, progress, False)
         audit_overlay(image, 4, CORAL, "AUTO VIOLATIONS")
@@ -187,25 +192,25 @@ def scene(image, index, progress, t):
     elif index == 3:
         browser_shell(image, t)
         audit_overlay(image, 0, LIME, "AUTO VIOLATIONS")
-        draw.rounded_rectangle((56, 274, 484, 354), 14, fill="#2B2313", outline="#FFD06A", width=2)
-        label(draw, (270, 297), "ZERO ≠ COMPLIANCE", 22, "#FFD06A", "ma")
-        label(draw, (270, 330), "manual evidence required", 14, PAPER, "ma")
+        draw.rectangle((62, 274, 478, 354), fill=VIOLET, outline=INK, width=3)
+        label(draw, (270, 297), "ZERO ≠ COMPLIANCE", 22, INK, "ma")
+        label(draw, (270, 330), "manual evidence required", 14, INK, "ma")
     elif index == 4:
         browser_shell(image, t)
         focus_path(image, progress, False)
     elif index == 5:
         browser_shell(image, t)
         focus_path(image, progress, True)
-        label(draw, (270, 782), "scroll-padding + focus ring", 14, "#B8CBD1", "mm", True)
+        label(draw, (270, 716), "scroll-padding + focus ring", 14, MUTED, "mm", True)
     else:
         browser_shell(image, t)
-        draw.rounded_rectangle((55, 245, 485, 630), 18, fill="#061013F2", outline=LIME, width=2)
+        draw.rectangle((62, 245, 478, 630), fill=SURFACE, outline=INK, width=4)
         rows = (("AUTOMATED", "0 violations"), ("KEYBOARD", "6/6 visible"), ("MANUAL", "required"))
         for i, (left, right) in enumerate(rows):
             y = 315 + i * 100
-            label(draw, (82, y), left, 17, "#AFC6CC", mono=True)
-            label(draw, (458, y), right, 19, LIME if i < 2 else "#FFD06A", "ra", True)
-            draw.line((82, y+30, 458, y+30), fill="#254149", width=1)
+            label(draw, (82, y), left, 17, MUTED, mono=True)
+            label(draw, (458, y), right, 19, LIME if i < 2 else CORAL, "ra", True)
+            draw.line((82, y+30, 458, y+30), fill=GRID, width=2)
         label(draw, (270, 690), "PULL REQUEST: PASS", 24, LIME, "mm", True)
 
 
@@ -257,10 +262,10 @@ def main():
         "-filter:a", "highpass=f=70,acompressor=threshold=-20dB:ratio=2.2:attack=8:release=150,loudnorm=I=-16:TP=-1.5:LRA=7",
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(final)
     ], check=True)
-    thumb_t = segments[5]["start"] + .6
-    thumb = base(thumb_t); header(thumb, 5); scene(thumb, 5, .68, thumb_t)
-    ImageDraw.Draw(thumb).rounded_rectangle((40, 96, 500, 170), 16, fill="#02090DF2", outline=LIME, width=3)
-    label(ImageDraw.Draw(thumb), (270, 133), "0 AUTO BUGS. STILL NOT DONE.", 22, PAPER, "mm")
+    thumb_t = segments[4]["start"] + .6
+    thumb = base(thumb_t); header(thumb, 4); scene(thumb, 4, 1.0, thumb_t)
+    ImageDraw.Draw(thumb).rectangle((52, 96, 492, 170), fill=VIOLET, outline=INK, width=4)
+    label(ImageDraw.Draw(thumb), (270, 133), "0 AUTO BUGS. KEYBOARD FAILS.", 22, INK, "mm")
     thumb.convert("RGB").resize((1080,1920), Image.Resampling.LANCZOS).save(args.output/"thumbnail.jpg", quality=95, subsampling=0)
     print(json.dumps({"video": str(final), "duration": duration, "timeline": str(args.output/"timeline.json")}))
 
