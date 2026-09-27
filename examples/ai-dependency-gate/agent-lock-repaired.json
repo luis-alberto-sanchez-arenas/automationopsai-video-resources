@@ -1,0 +1,20 @@
+{
+  "packages": {
+    "node_modules/nanoid": {
+      "version": "5.1.5",
+      "integrity": "sha512-baseline-example",
+      "registry": "https://registry.npmjs.org",
+      "installScript": false,
+      "provenance": true,
+      "license": "MIT"
+    },
+    "node_modules/ai-build-helper": {
+      "version": "0.1.1",
+      "integrity": "sha512-reviewed-example",
+      "registry": "https://registry.npmjs.org",
+      "installScript": false,
+      "provenance": true,
+      "license": "Apache-2.0"
+    }
+  }
+}
