@@ -1,0 +1,76 @@
+{
+  "checkedAt": "2026-09-27T04:17:00Z",
+  "channelId": "UC0DxP5lydmEtJwI3HLnO1LA",
+  "periodDays": 28,
+  "publicVideosInspected": 21,
+  "staleZeroViewExclusions": [],
+  "topPerformanceSignals": [
+    {
+      "videoId": "ZNPd4678DVg",
+      "title": "AI Agent Sandbox V2: Stop Production Secret Leaks #Shorts",
+      "views": 629,
+      "ageDays": 3.95,
+      "viewsPerDay": 159.1,
+      "likes": 7
+    },
+    {
+      "videoId": "yxF9-kbaau0",
+      "title": "AI Coding Patch Gate: Tests Before Merge #Shorts",
+      "views": 97,
+      "ageDays": 4.24,
+      "viewsPerDay": 22.88,
+      "likes": 0
+    },
+    {
+      "videoId": "WGkrLZYCRh4",
+      "title": "AI Coding Agent Sandbox: Live Attack vs Containment #Shorts",
+      "views": 63,
+      "ageDays": 5.45,
+      "viewsPerDay": 11.57,
+      "likes": 1
+    },
+    {
+      "videoId": "e-i7hLAnc4Y",
+      "title": "Stop Giving AI Agents Production Access #Shorts",
+      "views": 54,
+      "ageDays": 4.23,
+      "viewsPerDay": 12.76,
+      "likes": 0
+    },
+    {
+      "videoId": "SS9Ao1sDMS4",
+      "title": "AI-Generated UI Failed This Accessibility Test #Shorts",
+      "views": 53,
+      "ageDays": 3.2,
+      "viewsPerDay": 16.54,
+      "likes": 1
+    }
+  ],
+  "reusedLearning": {
+    "problem": "A plausible AI output can pass a superficial check while remaining unsafe or unusable.",
+    "hook": "Show the apparently successful state, then expose the failure immediately.",
+    "proof": "Repeat the same deterministic test before and after the control.",
+    "pace": "A useful state change every two to four seconds."
+  },
+  "originalityBoundary": {
+    "newProblem": "An automated accessibility scan reaches zero while the keyboard path still fails.",
+    "newDemo": "Two-part automated-plus-keyboard gate with 4 to 0 and 3/6 to 6/6 evidence.",
+    "newVisualSystem": "Warm print-lab grid, navy ink, cobalt controls, orange obstruction and yellow evidence stamps.",
+    "reusedScriptTitlePaletteOrDemo": false
+  },
+  "searchDemand": {
+    "query": "AI accessibility audit",
+    "recentGap": "Exact-query results show demand, while only two of the first fifteen results are under sixty seconds and neither demonstrates the same two-part reproducible gate.",
+    "topObservedResults": [
+      { "videoId": "RRoUDLVh6jU", "views": 780, "durationSeconds": 1056 },
+      { "videoId": "wdk8jgUd6oE", "views": 1150, "durationSeconds": 168 },
+      { "videoId": "ifOrHyH4wyE", "views": 2251, "durationSeconds": 241 },
+      { "videoId": "H6kQ-hYw4e0", "views": 62, "durationSeconds": 47 },
+      { "videoId": "uQwKQ0GoOOE", "views": 152, "durationSeconds": 55 }
+    ]
+  },
+  "commentReview": {
+    "available": false,
+    "reason": "The authorized analytics connection did not expose comment threads in this run; no unverified part-two promise was inferred."
+  }
+}
