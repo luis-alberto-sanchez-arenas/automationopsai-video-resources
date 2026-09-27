@@ -15,6 +15,7 @@
   "visuals": {
     "renderer": "renderers/2026-09-26-agentic-accessibility-short.py",
     "origin": "original procedural animation",
+    "visualSystem": "warm print-lab grid with navy ink, cobalt controls, orange obstruction and yellow evidence stamps",
     "bRollPercent": 0,
     "demonstrationDensityPercent": 100,
     "externalAssets": []
@@ -42,6 +43,8 @@
     "safeZonesReviewed": true,
     "contactSheetReviewed": true,
     "thumbnailReviewed": true,
-    "proofReproduced": true
+    "proofReproduced": true,
+    "masterSha256": "55fe53326d237233c0339ad37c6dbdf0ee2c8761722e2e4f3ecbeb4d25531845",
+    "thumbnailSha256": "8487c5838b04e34f27d63dec5b2c1fd71d2083677674358feff17ab5c926e85d"
   }
 }
