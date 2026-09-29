@@ -132,7 +132,7 @@ async function compatibleGenerate(options:GenerateOptions,provider:CompatiblePro
     if(!response.ok){
       const retryAfter=response.headers.get('retry-after');
       failures.push(`${candidateModel}: HTTP ${response.status}${retryAfter?` retry-after=${retryAfter}`:''} ${JSON.stringify(data).slice(0,420)}`);
-      if(response.status===429||response.status>=500)continue;
+      if(response.status===413||response.status===429||response.status>=500)continue;
       throw new Error(`AI provider failed (${response.status}): ${JSON.stringify(data).slice(0,700)}`);
     }
     const raw=data?.choices?.[0]?.message?.content;
