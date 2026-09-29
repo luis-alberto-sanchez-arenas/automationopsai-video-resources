@@ -48,6 +48,17 @@ function nextProductionSlot(existing:PublishJob[]){
   const timeZone=process.env.SCHEDULE_TIMEZONE||'America/Mexico_City';
   const now=new Date(),local=zonedParts(now,timeZone);
   const occupied=new Set(existing.map(x=>x.publishAt).filter(Boolean).map(x=>new Date(x as string).toISOString()));
+  const todayJobs=existing.filter(x=>{
+    if(!x.publishAt)return false;
+    const p=zonedParts(new Date(x.publishAt),timeZone);
+    return p.year===local.year&&p.month===local.month&&p.day===local.day;
+  });
+  const missedToday=PRODUCTION_SLOTS
+    .map(hour=>zonedLocalToUtc(local.year,local.month,local.day,hour,0,timeZone))
+    .filter(x=>x.getTime()<now.getTime()-5*60_000);
+  if(missedToday.length>todayJobs.length){
+    return new Date(Date.now()+10*60_000).toISOString();
+  }
   for(let dayOffset=0;dayOffset<8;dayOffset++){
     const base=new Date(Date.UTC(local.year,local.month-1,local.day+dayOffset,12,0,0));
     const bp=zonedParts(base,timeZone);
