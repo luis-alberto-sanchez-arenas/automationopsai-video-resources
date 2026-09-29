@@ -30,7 +30,15 @@ async function editorialCycle(){
     scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult='disabled-quality-protection';
     await saveState(scheduler);return;
   }
-  if(scheduler.nextEditorialAt&&Date.now()<new Date(scheduler.nextEditorialAt).getTime())return;
+  if(scheduler.nextEditorialAt&&Date.now()<new Date(scheduler.nextEditorialAt).getTime()){
+    const previous=scheduler.lastEditorialResult||'';
+    const inheritedTransient=/All configured AI providers failed|\b503\b|UNAVAILABLE|high demand|temporar/i.test(previous);
+    if(inheritedTransient){
+      console.log(`worker: clearing inherited transient editorial backoff scheduled for ${scheduler.nextEditorialAt}`);
+      scheduler.nextEditorialAt=undefined;
+      await saveState(scheduler);
+    }else return;
+  }
   if(!await youtubeConnected(USER_ID)){
     scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult='waiting-youtube-oauth';
     scheduler.nextEditorialAt=new Date(Date.now()+60*60_000).toISOString();await saveState(scheduler);
