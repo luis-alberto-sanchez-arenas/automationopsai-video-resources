@@ -48,8 +48,11 @@ async function editorialCycle(){
   }catch(error){
     scheduler.editorialFailures=(scheduler.editorialFailures||0)+1;
     const message=error instanceof Error?error.message:String(error);
-    const providerBlocked=/All configured AI providers failed|\b402\b|\b429\b|RESOURCE_EXHAUSTED|insufficient balance/i.test(message);
-    const delay=providerBlocked?6*60*60_000:Math.min(6*60*60_000,15*60_000*2**Math.min(5,scheduler.editorialFailures-1));
+    const billingBlocked=/\b402\b|insufficient balance|suspended due to insufficient/i.test(message);
+    const quotaBlocked=/\b429\b|RESOURCE_EXHAUSTED/i.test(message);
+    const transient=/\b503\b|UNAVAILABLE|high demand|temporar/i.test(message);
+    const delay=billingBlocked?6*60*60_000:quotaBlocked?60*60_000:transient?5*60_000:
+      Math.min(60*60_000,5*60_000*2**Math.min(4,scheduler.editorialFailures-1));
     scheduler.nextEditorialAt=new Date(Date.now()+delay).toISOString();scheduler.lastEditorialAt=new Date().toISOString();
     scheduler.lastEditorialResult=`failed: ${message.slice(0,500)}`;await saveState(scheduler);throw error;
   }
@@ -80,11 +83,11 @@ async function guarded(name:string,fn:()=>Promise<unknown>){
 }
 
 const TIMEZONE=process.env.SCHEDULE_TIMEZONE||'America/Mexico_City';
-cron.schedule('*/5 * * * *',()=>void guarded('editorial',editorialCycle),{timezone:TIMEZONE});
+cron.schedule('* * * * *',()=>void guarded('editorial',editorialCycle),{timezone:TIMEZONE});
 cron.schedule('* * * * *',()=>void guarded('publisher',publishCycle),{timezone:TIMEZONE});
 cron.schedule('30 4 * * *',()=>void guarded('metadata-repair',metadataRepairCycle),{timezone:TIMEZONE});
 
-console.log(`AutomationOpsAI worker started: editorial=${AUTO_EDITORIAL?'enabled/5min':'disabled-quality-protection'}; publisher=1min; timezone=${TIMEZONE}; external production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
+console.log(`AutomationOpsAI worker started: editorial=${AUTO_EDITORIAL?'enabled/1min':'disabled-quality-protection'}; publisher=1min; timezone=${TIMEZONE}; production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
 if(AUTO_EDITORIAL)void guarded('startup-editorial',editorialCycle);
 void guarded('startup-publisher',publishCycle);
 void guarded('startup-metadata-repair',metadataRepairCycle);
