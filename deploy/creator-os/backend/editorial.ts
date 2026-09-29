@@ -281,7 +281,7 @@ async function revise(p:Stored<Project>){
   const allowed=new Set(p.selected.sourceKeys);
   const sources=p.research.sources.filter(x=>allowed.has(x.key));
   const r=await generateJson<any>({
-    system:'Substantially revise a rejected technical tutorial. Fix blockers structurally: more proof, less generic language, better first 30 seconds, stronger narrative progression, and no unsupported claims. Do not merely paraphrase.',
+    system:'Substantially revise a rejected technical tutorial. Fix blockers structurally: more proof, less generic language, better first 30 seconds, stronger narrative progression, and no unsupported claims. DELETE any material claim that is not directly supported by the supplied official evidence; do not soften, speculate, infer product behavior, or invent replacement facts. Prefer fewer fully supported claims over a broader but weaker script. Do not merely paraphrase.',
     prompt:`Problem: ${JSON.stringify(p.selected)}\nGate: ${JSON.stringify(revisionContext)}\nScript:\n${p.script}\n\nEvidence:\n${sourceText(sources)}\n\nReturn title, description, thumbnailText, thumbnailSubtext, revised 1100-1700 word script, and material claim ledger.`,
     schema:{...SCRIPT_SCHEMA,properties:{...SCRIPT_SCHEMA.properties,thumbnailText:{type:'string'},thumbnailSubtext:{type:'string'}},required:['title','description','tags','script','claims','thumbnailText','thumbnailSubtext']},
     maxTokens:8500,temperature:.3,
