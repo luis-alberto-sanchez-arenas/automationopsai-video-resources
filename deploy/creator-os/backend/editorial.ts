@@ -86,6 +86,9 @@ async function fetchSources(){
   return results.filter((x):x is Source=>x!==null);
 }
 function sourceText(sources:Source[]){return sources.map(x=>`[${x.key}] ${x.title}\nURL: ${x.url}\nEXCERPT: ${x.excerpt}`).join('\n\n');}
+function compactSourceText(sources:Source[],charsPerSource=1100){
+  return sources.map(x=>`[${x.key}] ${x.title}\nURL: ${x.url}\nEXCERPT: ${x.excerpt.slice(0,charsPerSource)}`).join('\n\n');
+}
 
 async function listProjects(userId:string){
   const {items}=await db.list<Project>(PROJECT_TABLE,{filter:{userId},limit:30});
@@ -123,8 +126,8 @@ async function doResearch(p:Stored<Project>,ctx:EditorialContext){
   if(sources.length<3)throw new Error(`Only ${sources.length} official sources available; refusing to invent a tutorial`);
   const result=await generateJson<{opportunities:Opportunity[]}>({
     system:'You are a senior technical YouTube editor. Find concrete practitioner problems across AI automation, agents, software architecture, cybersecurity, productivity, AI-assisted design, design systems, accessibility and design-to-code. Reject hype, generic tool lists, income claims, trend-only topics and topics that cannot be demonstrated. A popular topic is insufficient: require a specific competitive gap that existing tutorials usually omit. Use only supplied source keys.',
-    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,40).join('\n')}\n\nRecent titles to avoid repeating:\n${ctx.recentVideos.slice(0,20).map(x=>x.title).join('\n')}\n\nTopics blocked because they remained at zero views for at least seven days:\n${(ctx.blockedTopics||[]).join('\n')||'None'}\n\nOfficial sources:\n${sourceText(sources)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Never propose a blocked topic or a semantic variant. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
-    schema:RESEARCH_SCHEMA,temperature:.35,maxTokens:4000,
+    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,20).join('\n')}\n\nRecent titles to avoid repeating:\n${ctx.recentVideos.slice(0,12).map(x=>x.title).join('\n')}\n\nTopics blocked because they remained at zero views for at least seven days:\n${(ctx.blockedTopics||[]).slice(0,12).join('\n')||'None'}\n\nOfficial sources:\n${compactSourceText(sources,650)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Never propose a blocked topic or a semantic variant. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
+    schema:RESEARCH_SCHEMA,temperature:.35,maxTokens:2200,
   });
   const keys=new Set(sources.map(x=>x.key));
   const opportunities=result.opportunities.map(x=>({...x,problem:clean(x.problem),audience:clean(x.audience),whyNow:clean(x.whyNow),proofArtifact:clean(x.proofArtifact),sourceKeys:x.sourceKeys.filter(k=>keys.has(k)).slice(0,4),utilityScore:score(x.utilityScore),demoScore:score(x.demoScore)})).filter(x=>x.sourceKeys.length&&x.utilityScore>=78&&x.demoScore>=78);
@@ -157,8 +160,8 @@ async function buildOutline(p:Stored<Project>){
   const sources=p.research.sources.filter(x=>allowed.has(x.key));
   const r=await generateJson<Outline>({
     system:'Design a tutorial for experienced builders. First 30 seconds: concrete problem, promised outcome, and proof. Every section must advance a build/debug process. No filler or generic motivation.',
-    prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nEvidence:\n${sourceText(sources)}\n\nCreate 9-14 sections. Every section must specify a visible proof artifact such as configuration, workflow branch, terminal output, test, failure reproduction, before/after behavior or observable result. Thumbnail main text <=28 chars and subtext <=36.`,
-    schema:OUTLINE_SCHEMA,maxTokens:4200,temperature:.25,
+    prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nEvidence:\n${compactSourceText(sources,1000)}\n\nCreate 9-14 sections. Every section must specify a visible proof artifact such as configuration, workflow branch, terminal output, test, failure reproduction, before/after behavior or observable result. Thumbnail main text <=28 chars and subtext <=36.`,
+    schema:OUTLINE_SCHEMA,maxTokens:2400,temperature:.25,
   });
   r.sections=r.sections.map(x=>({...x,heading:clean(x.heading),purpose:clean(x.purpose),demonstration:clean(x.demonstration),sourceKeys:x.sourceKeys.filter(k=>allowed.has(k))}));
   if(r.sections.some(x=>!x.sourceKeys.length))throw new Error('Outline section without official evidence');
@@ -176,14 +179,14 @@ async function writeScript(p:Stored<Project>){
     const system='Write like an experienced engineer teaching a real implementation. Use concrete examples, explicit failure cases, testing, debugging, observability and tradeoffs. Never fabricate product behavior, benchmarks, versions, API fields, prices or guarantees. No generic AI-copy transitions. Return a COMPLETE long-form tutorial, never a placeholder, summary or abbreviated script.'+(attempt?` Previous attempt failed quality validation: ${lastIssue}. Correct it completely.`:'');
     const r=await generateJson<any>({
       system,
-      prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${sourceText(sources)}\n\nWrite 1100-1700 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. The first 200 description characters must naturally contain the primary viewer search phrase. Return 5-12 relevant search tags and 3-5 precise hashtags in the description; use #Shorts only for an actual Short. Never add unrelated or trending-only hashtags. Return a ledger of every material factual/product claim with source keys. The script field itself must contain the full 1100-1700 word narration.`,
-      schema:SCRIPT_SCHEMA,maxTokens:8500,temperature:attempt===0?.28:.18,
+      prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${compactSourceText(sources,950)}\n\nWrite 1050-1450 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. The first 200 description characters must naturally contain the primary viewer search phrase. Return 5-12 relevant search tags and 3-5 precise hashtags in the description; use #Shorts only for an actual Short. Never add unrelated or trending-only hashtags. Return a ledger of every material factual/product claim with source keys. The script field itself must contain the full narration.`,
+      schema:SCRIPT_SCHEMA,maxTokens:3200,temperature:attempt===0?.28:.18,
     });
     const script=typeof r.script==='string'?r.script.trim():'';
     const wc=words(script);
     const rawClaims=Array.isArray(r.claims)?r.claims:[];
     const claims=rawClaims.map((x:any)=>({claim:clean(x.claim||''),sourceKeys:Array.isArray(x.sourceKeys)?x.sourceKeys.filter((k:string)=>allowed.has(k)):[]})).filter((x:any)=>x.claim&&x.sourceKeys.length);
-    if(wc>=1000&&wc<=1900&&claims.length>=4){
+    if(wc>=950&&wc<=1600&&claims.length>=4){
       p.title=clean(r.title).slice(0,100);p.description=String(r.description||'').trim();p.tags=(Array.isArray(r.tags)?r.tags:[]).map(clean).filter(Boolean).slice(0,12);
       p.script=script;p.claimDrafts=claims;p.stage='fact_review';p.lastError=undefined;await saveProject(p);return;
     }
@@ -202,7 +205,7 @@ async function factReview(p:Stored<Project>){
   const r=await generateJson<{verifiedScript:string;claims:Claim[]}>({
     system:'Be a strict factual reviewer. Keep only claims directly supported by the supplied official evidence. Remove unsupported claims from verifiedScript. The returned claims ledger must contain only claims that still appear in verifiedScript. Do not add new factual claims. Return concise notes.',
     prompt:`Script:\n${p.script}\n\nClaims:\n${JSON.stringify(compactClaims)}\n\nOfficial evidence:\n${compactEvidence}`,
-    schema:FACT_SCHEMA,maxTokens:5200,temperature:.05,
+    schema:FACT_SCHEMA,maxTokens:2800,temperature:.05,
   });
   const verified=String(r.verifiedScript||'').trim();
   const claims=(Array.isArray(r.claims)?r.claims:[])
