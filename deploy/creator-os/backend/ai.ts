@@ -69,17 +69,21 @@ async function geminiGenerate(options:GenerateOptions, modelOverride?:string) {
   return text;
 }
 
-async function compatibleGenerate(options:GenerateOptions,provider:'deepseek'|'kimi'|'zai'|'qwen'|'compatible') {
+type CompatibleProvider='deepseek'|'kimi'|'zai'|'qwen'|'groq'|'openrouter'|'cloudflare'|'compatible';
+async function compatibleGenerate(options:GenerateOptions,provider:CompatibleProvider) {
   const prefix=provider==='compatible'?'AI':provider.toUpperCase();
-  const defaults:Record<string,{base:string;model:string}>={
+  const defaults:Record<CompatibleProvider,{base:string;model:string}>={
     deepseek:{base:'https://api.deepseek.com',model:''},
     kimi:{base:'https://api.moonshot.ai/v1',model:''},
     zai:{base:'https://api.z.ai/api/paas/v4',model:'glm-4.7-flash'},
     qwen:{base:'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',model:'qwen-turbo'},
+    groq:{base:'https://api.groq.com/openai/v1',model:'qwen/qwen3.8-27b'},
+    openrouter:{base:'https://openrouter.ai/api/v1',model:'openrouter/free'},
+    cloudflare:{base:process.env.CLOUDFLARE_ACCOUNT_ID?`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/v1`:'',model:'@cf/zai-org/glm-4.7-flash'},
     compatible:{base:'',model:''},
   };
   const base = (process.env[`${prefix}_BASE_URL`] || defaults[provider].base).replace(/\/$/,'');
-  const key = process.env[`${prefix}_API_KEY`] || '';
+  const key = provider==='cloudflare'?(process.env.CLOUDFLARE_API_TOKEN||''):(process.env[`${prefix}_API_KEY`] || '');
   const model = process.env[`${prefix}_MODEL`] || defaults[provider].model;
   if (!base || !key || !model) throw new Error('No AI provider configured');
   const payload:any = {
@@ -155,9 +159,11 @@ async function extraCompatibleGenerate(options:GenerateOptions,p:ExtraProvider){
   return text;
 }
 
+const FREE_PROVIDERS=new Set(['groq','openrouter','cloudflare','gemini']);
 export async function generateText(options:GenerateOptions) {
-  const requested=(process.env.AI_PROVIDER_ORDER||'zai,qwen,gemini,deepseek,kimi,compatible').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-  const providers=[...new Set(requested)] as Array<'gemini'|'deepseek'|'kimi'|'zai'|'qwen'|'compatible'>;
+  const freeOnly=process.env.FREE_ONLY_MODE==='true';
+  const requested=(process.env.AI_PROVIDER_ORDER||'groq,openrouter,cloudflare,gemini').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const providers=[...new Set(requested)].filter(x=>!freeOnly||FREE_PROVIDERS.has(x)) as Array<'gemini'|CompatibleProvider>;
   const failures:string[]=[];
   for(const provider of providers){
     if(cooling(provider)){failures.push(`${provider}: cooling down after quota/transient failure`);continue;}
@@ -173,12 +179,16 @@ export async function generateText(options:GenerateOptions) {
           throw error;
         }
       }
-      const prefix=provider==='compatible'?'AI':provider.toUpperCase();
-      if(!process.env[`${prefix}_API_KEY`])continue;
+      if(provider==='cloudflare'){
+        if(!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID)continue;
+      }else{
+        const prefix=provider==='compatible'?'AI':provider.toUpperCase();
+        if(!process.env[`${prefix}_API_KEY`])continue;
+      }
       return await compatibleGenerate(options,provider);
     }catch(error){cool(provider,error);failures.push(`${provider}: ${error instanceof Error?error.message:String(error)}`);}
   }
-  for(const extra of extraProviders()){
+  for(const extra of freeOnly?[]:extraProviders()){
     const id=`extra:${extra.name}`;
     if(cooling(id)){failures.push(`${extra.name}: cooling down after quota/transient failure`);continue;}
     try{return await extraCompatibleGenerate(options,extra);}
