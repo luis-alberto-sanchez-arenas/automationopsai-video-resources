@@ -32,9 +32,14 @@ async function editorialCycle(){
   }
   if(scheduler.nextEditorialAt&&Date.now()<new Date(scheduler.nextEditorialAt).getTime()){
     const previous=scheduler.lastEditorialResult||'';
-    const inheritedTransient=/All configured AI providers failed|\b503\b|UNAVAILABLE|high demand|temporar/i.test(previous);
-    if(inheritedTransient){
-      console.log(`worker: clearing inherited transient editorial backoff scheduled for ${scheduler.nextEditorialAt}`);
+    const nextTs=new Date(scheduler.nextEditorialAt).getTime();
+    const lastTs=scheduler.lastEditorialAt?new Date(scheduler.lastEditorialAt).getTime():Date.now();
+    const scheduledDelay=Math.max(0,nextTs-lastTs);
+    const hardBlock=/\b402\b|insufficient balance|suspended due to insufficient|\b429\b|RESOURCE_EXHAUSTED/i.test(previous);
+    const transient=/\b503\b|UNAVAILABLE|high demand|temporar/i.test(previous);
+    const inheritedLongTransient=transient&&!hardBlock&&scheduledDelay>90*60_000;
+    if(inheritedLongTransient){
+      console.log(`worker: clearing inherited long transient editorial backoff scheduled for ${scheduler.nextEditorialAt}`);
       scheduler.nextEditorialAt=undefined;
       await saveState(scheduler);
     }else return;
