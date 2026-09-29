@@ -18,7 +18,9 @@ function cool(provider:string,error:unknown){
     return;
   }
   if(/\b429\b|RESOURCE_EXHAUSTED/i.test(message)){
-    providerCooldownUntil.set(provider,Date.now()+60*60_000);
+    const m=message.match(/retry-after=(\d+)/i);
+    const seconds=m?Math.max(5,Number(m[1])):120;
+    providerCooldownUntil.set(provider,Date.now()+seconds*1000);
     return;
   }
   if(/\b503\b|UNAVAILABLE/i.test(message))providerCooldownUntil.set(provider,Date.now()+15*60_000);
@@ -101,28 +103,44 @@ async function compatibleGenerate(options:GenerateOptions,provider:CompatiblePro
       json_schema:{name:'result',strict:true,schema:options.schema},
     };
   }
-  let response=await fetch(`${base}/chat/completions`,{
-    method:'POST',
-    headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
-    body:JSON.stringify(payload),
-  });
-  if (!response.ok && options.schema) {
-    delete payload.response_format;
-    payload.messages=[
-      {role:'system',content:`${options.system}\nReturn valid JSON only.`},
-      {role:'user',content:`${options.prompt}\nSchema:\n${JSON.stringify(options.schema)}`},
-    ];
-    response=await fetch(`${base}/chat/completions`,{
+  const models=provider==='groq'
+    ? [...new Set([model,'openai/gpt-oss-20b','openai/gpt-oss-120b'])]
+    : [model];
+  const failures:string[]=[];
+  for(const candidateModel of models){
+    const attemptPayload={...payload,model:candidateModel};
+    let response=await fetch(`${base}/chat/completions`,{
       method:'POST',
       headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
-      body:JSON.stringify(payload),
+      body:JSON.stringify(attemptPayload),
     });
+    if (!response.ok && options.schema) {
+      const fallbackPayload:any={...attemptPayload};
+      delete fallbackPayload.response_format;
+      fallbackPayload.messages=[
+        {role:'system',content:`${options.system}\nReturn valid JSON only. Do not reveal reasoning.`},
+        {role:'user',content:`${options.prompt}\nSchema:\n${JSON.stringify(options.schema)}`},
+      ];
+      response=await fetch(`${base}/chat/completions`,{
+        method:'POST',
+        headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
+        body:JSON.stringify(fallbackPayload),
+      });
+    }
+    const data=await response.json() as any;
+    if(!response.ok){
+      const retryAfter=response.headers.get('retry-after');
+      failures.push(`${candidateModel}: HTTP ${response.status}${retryAfter?` retry-after=${retryAfter}`:''} ${JSON.stringify(data).slice(0,420)}`);
+      if(response.status===429||response.status>=500)continue;
+      throw new Error(`AI provider failed (${response.status}): ${JSON.stringify(data).slice(0,700)}`);
+    }
+    const raw=data?.choices?.[0]?.message?.content;
+    const text=typeof raw==='string'?raw:
+      Array.isArray(raw)?raw.map((x:any)=>typeof x==='string'?x:(x?.text||'')).join(''):'';
+    if(text.trim())return text;
+    failures.push(`${candidateModel}: empty content`);
   }
-  const data=await response.json() as any;
-  if (!response.ok) throw new Error(`AI provider failed (${response.status}): ${JSON.stringify(data).slice(0,700)}`);
-  const text=data?.choices?.[0]?.message?.content;
-  if (typeof text!=='string'||!text.trim()) throw new Error('AI provider returned no text');
-  return text;
+  throw new Error(`AI provider returned no usable text: ${failures.join(' | ').slice(0,1200)}`);
 }
 
 
