@@ -197,18 +197,27 @@ async function factReview(p:Stored<Project>){
   if(!p.research||!p.script||!p.claimDrafts?.length)throw new Error('Fact-review inputs missing');
   const keys=new Set(p.claimDrafts.flatMap(x=>x.sourceKeys));
   const sources=p.research.sources.filter(x=>keys.has(x.key));
+  const compactEvidence=sources.map(x=>`[${x.key}] ${x.title}\n${x.excerpt.slice(0,1400)}`).join('\n\n');
+  const compactClaims=p.claimDrafts.slice(0,12).map(x=>({claim:x.claim,sourceKeys:x.sourceKeys}));
   const r=await generateJson<{verifiedScript:string;claims:Claim[]}>({
-    system:'Be a hostile factual reviewer. Compare each material claim with official evidence. Remove anything unsupported from verifiedScript; only qualify a claim when the supplied evidence directly supports the qualified version. IMPORTANT: the returned claims ledger must contain ONLY material claims that remain in verifiedScript after your edits. If an unsupported claim is removed from verifiedScript, omit it from the claims ledger entirely. Never mark unsupported product behavior as supported.',
-    prompt:`Script:\n${p.script}\n\nClaims:\n${JSON.stringify(p.claimDrafts)}\n\nEvidence:\n${sourceText(sources)}`,
-    schema:FACT_SCHEMA,maxTokens:8500,temperature:.1,
+    system:'Be a strict factual reviewer. Keep only claims directly supported by the supplied official evidence. Remove unsupported claims from verifiedScript. The returned claims ledger must contain only claims that still appear in verifiedScript. Do not add new factual claims. Return concise notes.',
+    prompt:`Script:\n${p.script}\n\nClaims:\n${JSON.stringify(compactClaims)}\n\nOfficial evidence:\n${compactEvidence}`,
+    schema:FACT_SCHEMA,maxTokens:5200,temperature:.05,
   });
-  const claims=r.claims.map(x=>({...x,claim:clean(x.claim),confidence:score(x.confidence),note:clean(x.note)}));
-  const unsupported=claims.filter(x=>!x.supported||x.confidence<70);
-  p.script=r.verifiedScript.trim();p.claims=claims;
-  if(unsupported.length){
-    if(p.revision>=2){p.stage='rejected';p.lastError=`Factual gate rejected: ${unsupported.map(x=>x.claim).join(' | ').slice(0,900)}`;}
-    else {p.stage='revision';p.lastError=`Factual gate needs revision: ${unsupported.length} unsupported/weak claims`;}
-  } else {p.stage='storyboard';p.lastError=undefined;}
+  const verified=String(r.verifiedScript||'').trim();
+  const claims=(Array.isArray(r.claims)?r.claims:[])
+    .map(x=>({...x,claim:clean(x.claim||''),confidence:score(x.confidence),note:clean(x.note||'')}))
+    .filter(x=>x.claim);
+  const supported=claims.filter(x=>x.supported&&x.confidence>=70);
+  const wc=words(verified);
+  p.script=verified;p.claims=supported;
+  if(wc>=900&&supported.length>=4){
+    p.stage='storyboard';p.lastError=undefined;
+  }else if(p.revision>=2){
+    p.stage='rejected';p.lastError=`Factual gate rejected: verifiedScript=${wc} words, supportedClaims=${supported.length}`;
+  }else{
+    p.stage='revision';p.lastError=`Factual gate needs revision: verifiedScript=${wc} words, supportedClaims=${supported.length}`;
+  }
   await saveProject(p);
 }
 
