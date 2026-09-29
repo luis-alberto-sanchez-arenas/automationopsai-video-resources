@@ -267,10 +267,16 @@ async function qualityGate(p:Stored<Project>,ctx:EditorialContext){
 }
 
 async function revise(p:Stored<Project>){
-  // Fact review can reject a package before the final Quality Gate exists.
-  // Treat that rejection as revision context instead of deadlocking the state
-  // machine in `revision` with `Revision package missing`.
-  if(!p.research||!p.selected||!p.script)throw new Error('Revision package missing');
+  // Heal legacy/inconsistent persisted projects instead of deadlocking revision.
+  if(!p.research){
+    p.stage='research';p.lastError='Recovered revision: research package was missing';await saveProject(p);return;
+  }
+  if(!p.selected){
+    p.stage='problem';p.lastError='Recovered revision: selected problem was missing';await saveProject(p);return;
+  }
+  if(!p.script){
+    p.stage='script';p.lastError='Recovered revision: script was missing';await saveProject(p);return;
+  }
   const revisionContext=p.gate||{
     passed:false,
     scores:{},
