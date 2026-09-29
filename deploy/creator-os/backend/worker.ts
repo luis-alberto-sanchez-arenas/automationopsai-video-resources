@@ -12,7 +12,7 @@ await initPlatform();
 type SchedulerState={
   userId:string;editorialFailures:number;nextEditorialAt?:string;lastEditorialAt?:string;
   lastEditorialResult?:string;lastPublisherAt?:string;lastPublisherResult?:string;
-  lastMetadataRepairAt?:string;lastMetadataRepairResult?:string;updatedAt:string;
+  lastMetadataRepairAt?:string;lastMetadataRepairResult?:string;providerConfigRev?:string;updatedAt:string;
 };
 async function state(){
   const {items}=await db.list<SchedulerState>(SCHEDULER_TABLE,{filter:{userId:USER_ID},limit:1});
@@ -29,6 +29,14 @@ async function editorialCycle(){
   if(!AUTO_EDITORIAL){
     scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult='disabled-quality-protection';
     await saveState(scheduler);return;
+  }
+  const providerConfigRev=process.env.AI_PROVIDER_CONFIG_REV||'';
+  if(providerConfigRev&&scheduler.providerConfigRev!==providerConfigRev){
+    console.log(`worker: provider config changed (${scheduler.providerConfigRev||'none'} -> ${providerConfigRev}); clearing editorial backoff`);
+    scheduler.providerConfigRev=providerConfigRev;
+    scheduler.nextEditorialAt=undefined;
+    scheduler.editorialFailures=0;
+    await saveState(scheduler);
   }
   if(scheduler.nextEditorialAt&&Date.now()<new Date(scheduler.nextEditorialAt).getTime()){
     const previous=scheduler.lastEditorialResult||'';
