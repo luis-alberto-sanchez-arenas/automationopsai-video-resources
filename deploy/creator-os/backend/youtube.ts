@@ -320,13 +320,16 @@ export async function makeJobPublic(userId:string,jobId:string){
 
 export async function promoteApprovedReviewedJobs(userId:string){
   const candidates=(await listJobs(userId)).filter(job=>
-    job.automationKey.startsWith('reviewed-')&&job.status==='published'&&
-    job.thumbnailStatus==='set'&&job.privacyStatus!=='public'&&Boolean(job.youtubeVideoId)&&
+    job.status==='published'&&job.thumbnailStatus==='set'&&job.privacyStatus!=='public'&&Boolean(job.youtubeVideoId)&&
     (!job.publishAt||new Date(job.publishAt).getTime()<=Date.now())
   );
   const results=[];
   for(const job of candidates){
-    results.push({id:job.id,...await makeJobPublic(userId,job.id)});
+    const result=await makeJobPublic(userId,job.id);
+    if(job.automationKey.startsWith(EDITORIAL_PREFIX)&&job.youtubeVideoId){
+      await markPublished(userId,job.automationKey,job.youtubeVideoId,job.youtubeUrl||`https://www.youtube.com/watch?v=${job.youtubeVideoId}`);
+    }
+    results.push({id:job.id,...result});
   }
   return results;
 }
