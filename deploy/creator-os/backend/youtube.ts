@@ -29,6 +29,38 @@ export type ReviewedPublishSpec={
   publishAt?:string;
 };
 
+const PRODUCTION_SLOTS=[6,11,15,22] as const;
+function zonedParts(date:Date,timeZone:string){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date);
+  const get=(type:string)=>Number(parts.find(x=>x.type===type)?.value||0);
+  return {year:get('year'),month:get('month'),day:get('day'),hour:get('hour'),minute:get('minute'),second:get('second')};
+}
+function zonedLocalToUtc(year:number,month:number,day:number,hour:number,minute:number,timeZone:string){
+  let guess=Date.UTC(year,month-1,day,hour,minute,0);
+  for(let i=0;i<2;i++){
+    const p=zonedParts(new Date(guess),timeZone);
+    const represented=Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second);
+    guess-=represented-guess;
+  }
+  return new Date(guess);
+}
+function nextProductionSlot(existing:PublishJob[]){
+  const timeZone=process.env.SCHEDULE_TIMEZONE||'America/Mexico_City';
+  const now=new Date(),local=zonedParts(now,timeZone);
+  const occupied=new Set(existing.map(x=>x.publishAt).filter(Boolean).map(x=>new Date(x as string).toISOString()));
+  for(let dayOffset=0;dayOffset<8;dayOffset++){
+    const base=new Date(Date.UTC(local.year,local.month-1,local.day+dayOffset,12,0,0));
+    const bp=zonedParts(base,timeZone);
+    for(const hour of PRODUCTION_SLOTS){
+      const candidate=zonedLocalToUtc(bp.year,bp.month,bp.day,hour,0,timeZone);
+      if(candidate.getTime()<Date.now()+5*60_000)continue;
+      const iso=candidate.toISOString();
+      if(!occupied.has(iso))return iso;
+    }
+  }
+  return new Date(Date.now()+10*60_000).toISOString();
+}
+
 function origin(){return (process.env.PUBLIC_ORIGIN||'http://localhost:3000').replace(/\/$/,'');}
 function redirectUri(){return `${origin()}/api/oauth/callback`;}
 function clientSecrets(){
@@ -205,12 +237,13 @@ export async function ensurePublishJob(userId:string,spec?:PublishSpec){
   const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:50});
   if(items.some(x=>x.automationKey===spec.automationKey))return;
   const t=new Date().toISOString();
+  const publishAt=nextProductionSlot(items);
   const metadata=optimizeMetadata(spec.title,spec.description,spec.tags,/short/i.test(spec.title)||/short/i.test(spec.automationKey));
   const record:PublishJob={
     userId,automationKey:spec.automationKey,title:metadata.title,description:metadata.description,tags:metadata.tags,
     privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript,status:'pending',uploadedBytes:0,retryCount:0,
-    thumbnailStatus:'pending',createdAt:t,updatedAt:t,
+    thumbnailStatus:'pending',publishAt,createdAt:t,updatedAt:t,
   };
   await db.add(JOB_TABLE,[record]);
 }
@@ -364,6 +397,7 @@ export async function processOnePublishStep(userId:string){
   let editorial:Awaited<ReturnType<typeof getEditorialStatus>>|undefined;
   const recoverable=(x:PublishJob)=>['pending','uploading'].includes(x.status)||(x.status==='failed'&&x.retryCount<4);
   let job=jobs.find(x=>x.automationKey.startsWith('reviewed-')&&recoverable(x));
+  if(!job)job=jobs.find(x=>!x.automationKey.startsWith('reviewed-')&&recoverable(x));
   if(!job){
     editorial=await getEditorialStatus(userId);
     if(editorial.stage!=='ready'||!editorial.projectKey)return {status:'not-ready'};
@@ -390,7 +424,7 @@ export async function processOnePublishStep(userId:string){
         await privacy(job.youtubeVideoId,job.targetPrivacyStatus,access);job.privacyStatus=job.targetPrivacyStatus;await saveJob(job);return {status:'unlisted',youtubeUrl:job.youtubeUrl};
       }
       job.status='published';job.lastError=undefined;await saveJob(job);
-      if(editorial?.projectKey===job.automationKey)await markPublished(userId,job.automationKey,job.youtubeVideoId,job.youtubeUrl||`https://www.youtube.com/watch?v=${job.youtubeVideoId}`);
+      if(job.automationKey.startsWith(EDITORIAL_PREFIX))await markPublished(userId,job.automationKey,job.youtubeVideoId,job.youtubeUrl||`https://www.youtube.com/watch?v=${job.youtubeVideoId}`);
       return {status:'published',youtubeUrl:job.youtubeUrl};
     }
 
