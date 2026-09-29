@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { db, initPlatform, withLock } from './platform.js';
-import { advanceEditorial } from './editorial.js';
+import { advanceEditorial, markQueued } from './editorial.js';
 import { demandContext, ensurePublishJob, processOnePublishStep, promoteApprovedReviewedJobs, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
 
@@ -42,6 +42,7 @@ async function editorialCycle(){
     const step=await advanceEditorial(USER_ID,context);
     await ensurePublishJob(USER_ID,step.publishSpec);
     await ensureTikTokPublishJob(USER_ID,step.publishSpec);
+    if(step.status==='ready'&&step.project?.projectKey)await markQueued(USER_ID,step.project.projectKey);
     scheduler.editorialFailures=0;scheduler.nextEditorialAt=undefined;
     scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult=step.status;
     await saveState(scheduler);console.log(`worker: editorial=${step.status}`);
