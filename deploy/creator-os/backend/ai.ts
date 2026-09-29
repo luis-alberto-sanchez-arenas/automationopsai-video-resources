@@ -198,6 +198,13 @@ export async function generateText(options:GenerateOptions) {
 }
 
 export async function generateJson<T>(options:GenerateOptions):Promise<T> {
-  const text=await generateText(options);
-  return JSON.parse(parseJsonText(text)) as T;
+  let last='';
+  for(let attempt=0;attempt<2;attempt++){
+    const strictSystem=attempt===0?options.system:`${options.system}\nCRITICAL: Return ONLY one valid JSON value matching the schema. No markdown, headings, prose, comments or code fences.`;
+    const strictPrompt=attempt===0?options.prompt:`${options.prompt}\n\nReturn JSON only. Do not explain the answer.`;
+    const text=await generateText({...options,system:strictSystem,prompt:strictPrompt,temperature:attempt===0?options.temperature:0});
+    last=text;
+    try{return JSON.parse(parseJsonText(text)) as T;}catch{}
+  }
+  throw new Error(`AI returned invalid JSON after strict retry: ${last.slice(0,500)}`);
 }
