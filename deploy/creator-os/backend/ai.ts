@@ -69,11 +69,18 @@ async function geminiGenerate(options:GenerateOptions, modelOverride?:string) {
   return text;
 }
 
-async function compatibleGenerate(options:GenerateOptions,provider:'deepseek'|'kimi'|'compatible') {
+async function compatibleGenerate(options:GenerateOptions,provider:'deepseek'|'kimi'|'zai'|'qwen'|'compatible') {
   const prefix=provider==='compatible'?'AI':provider.toUpperCase();
-  const base = (process.env[`${prefix}_BASE_URL`] || (provider==='deepseek'?'https://api.deepseek.com':provider==='kimi'?'https://api.moonshot.ai/v1':'')).replace(/\/$/,'');
+  const defaults:Record<string,{base:string;model:string}>={
+    deepseek:{base:'https://api.deepseek.com',model:''},
+    kimi:{base:'https://api.moonshot.ai/v1',model:''},
+    zai:{base:'https://api.z.ai/api/paas/v4',model:'glm-4.7-flash'},
+    qwen:{base:'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',model:'qwen-turbo'},
+    compatible:{base:'',model:''},
+  };
+  const base = (process.env[`${prefix}_BASE_URL`] || defaults[provider].base).replace(/\/$/,'');
   const key = process.env[`${prefix}_API_KEY`] || '';
-  const model = process.env[`${prefix}_MODEL`] || '';
+  const model = process.env[`${prefix}_MODEL`] || defaults[provider].model;
   if (!base || !key || !model) throw new Error('No AI provider configured');
   const payload:any = {
     model,
@@ -115,8 +122,8 @@ async function compatibleGenerate(options:GenerateOptions,provider:'deepseek'|'k
 }
 
 export async function generateText(options:GenerateOptions) {
-  const requested=(process.env.AI_PROVIDER_ORDER||'gemini,deepseek,kimi,compatible').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-  const providers=[...new Set(requested)] as Array<'gemini'|'deepseek'|'kimi'|'compatible'>;
+  const requested=(process.env.AI_PROVIDER_ORDER||'zai,qwen,gemini,deepseek,kimi,compatible').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const providers=[...new Set(requested)] as Array<'gemini'|'deepseek'|'kimi'|'zai'|'qwen'|'compatible'>;
   const failures:string[]=[];
   for(const provider of providers){
     if(cooling(provider)){failures.push(`${provider}: cooling down after quota/transient failure`);continue;}
