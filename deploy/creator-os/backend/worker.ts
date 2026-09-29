@@ -67,7 +67,7 @@ async function editorialCycle(){
     if(step.status==='ready'&&step.project?.projectKey)await markQueued(USER_ID,step.project.projectKey);
     scheduler.editorialFailures=0;scheduler.nextEditorialAt=undefined;
     scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult=step.status;
-    await saveState(scheduler);console.log(`worker: editorial=${step.status}`);
+    await saveState(scheduler);console.log(`worker: editorial=${step.status} detail=${JSON.stringify({projectKey:step.project?.projectKey,revision:step.project?.revision,qualityScore:step.project?.gate?.scores?.overall,blockers:step.project?.gate?.blockers?.slice(0,4),lastError:step.project?.lastError}).slice(0,1200)}`);
   }catch(error){
     scheduler.editorialFailures=(scheduler.editorialFailures||0)+1;
     const message=error instanceof Error?error.message:String(error);
