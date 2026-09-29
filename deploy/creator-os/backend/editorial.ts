@@ -190,7 +190,7 @@ async function factReview(p:Stored<Project>){
   const keys=new Set(p.claimDrafts.flatMap(x=>x.sourceKeys));
   const sources=p.research.sources.filter(x=>keys.has(x.key));
   const r=await generateJson<{verifiedScript:string;claims:Claim[]}>({
-    system:'Be a hostile factual reviewer. Compare each material claim with official evidence. Remove or qualify anything unsupported. Do not mark unsupported product behavior as supported.',
+    system:'Be a hostile factual reviewer. Compare each material claim with official evidence. Remove anything unsupported from verifiedScript; only qualify a claim when the supplied evidence directly supports the qualified version. IMPORTANT: the returned claims ledger must contain ONLY material claims that remain in verifiedScript after your edits. If an unsupported claim is removed from verifiedScript, omit it from the claims ledger entirely. Never mark unsupported product behavior as supported.',
     prompt:`Script:\n${p.script}\n\nClaims:\n${JSON.stringify(p.claimDrafts)}\n\nEvidence:\n${sourceText(sources)}`,
     schema:FACT_SCHEMA,maxTokens:8500,temperature:.1,
   });
