@@ -171,17 +171,25 @@ async function writeScript(p:Stored<Project>){
   if(!p.research||!p.selected||!p.outline)throw new Error('Outline missing');
   const allowed=new Set(p.selected.sourceKeys);
   const sources=p.research.sources.filter(x=>allowed.has(x.key));
-  const r=await generateJson<any>({
-    system:'Write like an experienced engineer teaching a real implementation. Use concrete examples, explicit failure cases, testing, debugging, observability and tradeoffs. Never fabricate product behavior, benchmarks, versions, API fields, prices or guarantees. No generic AI-copy transitions.',
-    prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${sourceText(sources)}\n\nWrite 1100-1700 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. The first 200 description characters must naturally contain the primary viewer search phrase. Return 5-12 relevant search tags and 3-5 precise hashtags in the description; use #Shorts only for an actual Short. Never add unrelated or trending-only hashtags. Return a ledger of every material factual/product claim with source keys.`,
-    schema:SCRIPT_SCHEMA,maxTokens:8500,temperature:.28,
-  });
-  const wc=words(r.script);
-  if(wc<1000||wc>1900)throw new Error(`Script outside quality range (${wc} words)`);
-  const claims=(r.claims as any[]).map(x=>({claim:clean(x.claim),sourceKeys:x.sourceKeys.filter((k:string)=>allowed.has(k))})).filter(x=>x.sourceKeys.length);
-  if(claims.length<4)throw new Error('Claim ledger incomplete');
-  p.title=clean(r.title).slice(0,100);p.description=String(r.description).trim();p.tags=(r.tags as string[]).map(clean).filter(Boolean).slice(0,12);
-  p.script=String(r.script).trim();p.claimDrafts=claims;p.stage='fact_review';p.lastError=undefined;await saveProject(p);
+  let lastIssue='initial generation';
+  for(let attempt=0;attempt<3;attempt++){
+    const system='Write like an experienced engineer teaching a real implementation. Use concrete examples, explicit failure cases, testing, debugging, observability and tradeoffs. Never fabricate product behavior, benchmarks, versions, API fields, prices or guarantees. No generic AI-copy transitions. Return a COMPLETE long-form tutorial, never a placeholder, summary or abbreviated script.'+(attempt?` Previous attempt failed quality validation: ${lastIssue}. Correct it completely.`:'');
+    const r=await generateJson<any>({
+      system,
+      prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${sourceText(sources)}\n\nWrite 1100-1700 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. The first 200 description characters must naturally contain the primary viewer search phrase. Return 5-12 relevant search tags and 3-5 precise hashtags in the description; use #Shorts only for an actual Short. Never add unrelated or trending-only hashtags. Return a ledger of every material factual/product claim with source keys. The script field itself must contain the full 1100-1700 word narration.`,
+      schema:SCRIPT_SCHEMA,maxTokens:8500,temperature:attempt===0?.28:.18,
+    });
+    const script=typeof r.script==='string'?r.script.trim():'';
+    const wc=words(script);
+    const rawClaims=Array.isArray(r.claims)?r.claims:[];
+    const claims=rawClaims.map((x:any)=>({claim:clean(x.claim||''),sourceKeys:Array.isArray(x.sourceKeys)?x.sourceKeys.filter((k:string)=>allowed.has(k)):[]})).filter((x:any)=>x.claim&&x.sourceKeys.length);
+    if(wc>=1000&&wc<=1900&&claims.length>=4){
+      p.title=clean(r.title).slice(0,100);p.description=String(r.description||'').trim();p.tags=(Array.isArray(r.tags)?r.tags:[]).map(clean).filter(Boolean).slice(0,12);
+      p.script=script;p.claimDrafts=claims;p.stage='fact_review';p.lastError=undefined;await saveProject(p);return;
+    }
+    lastIssue=`script=${wc} words, supported claim ledger=${claims.length}`;
+  }
+  throw new Error(`Script generation failed quality validation after retries: ${lastIssue}`);
 }
 
 const FACT_SCHEMA:any={type:'object',properties:{verifiedScript:{type:'string'},claims:{type:'array',minItems:4,items:{type:'object',properties:{claim:{type:'string'},sourceKeys:{type:'array',items:{type:'string'}},supported:{type:'boolean'},confidence:{type:'number'},note:{type:'string'}},required:['claim','sourceKeys','supported','confidence','note']}}},required:['verifiedScript','claims']};
