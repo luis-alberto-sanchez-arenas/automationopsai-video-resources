@@ -9,7 +9,7 @@ export const EDITORIAL_PREFIX='editorial-pro-v2-';
 const PIPELINE_VERSION='editorial-pro-v2';
 const PROJECT_TABLE='editorial_projects_v2';
 const SCENE_TABLE='editorial_scenes_v2';
-const COOLDOWN_HOURS=72;
+const COOLDOWN_HOURS=0;
 
 const BROLL=[
   'https://videos.pexels.com/video-files/7165691/7165691-hd_1920_1080_25fps.mp4',
@@ -33,7 +33,7 @@ const SOURCES=[
   ['wcag-quickref','W3C WCAG 2.2 quick reference','https://www.w3.org/WAI/WCAG22/quickref/'],
 ] as const;
 
-type Stage='research'|'problem'|'outline'|'script'|'fact_review'|'storyboard'|'quality_gate'|'revision'|'rendering'|'assembly'|'ready'|'published'|'rejected';
+type Stage='research'|'problem'|'outline'|'script'|'fact_review'|'storyboard'|'quality_gate'|'revision'|'rendering'|'assembly'|'ready'|'queued'|'published'|'rejected';
 type Source={key:string;title:string;url:string;excerpt:string;fetchedAt:string};
 type Opportunity={problem:string;audience:string;whyNow:string;proofArtifact:string;sourceKeys:string[];utilityScore:number;demoScore:number};
 type Selected=Opportunity&{promise:string;viewerOutcome:string;scope:string[];exclusions:string[];workingTitle:string};
@@ -104,7 +104,7 @@ async function newProject(userId:string){
 }
 async function currentProject(userId:string){
   const projects=await listProjects(userId);
-  const active=projects.find(x=>!['published','rejected'].includes(x.stage));
+  const active=projects.find(x=>!['queued','published','rejected'].includes(x.stage));
   if(active)return {project:active,cooldown:false};
   const last=projects.find(x=>x.stage==='published');
   if(last&&hoursSince(last.publishedAt||last.updatedAt)<COOLDOWN_HOURS)return {project:last,cooldown:true};
@@ -453,13 +453,21 @@ export async function advanceEditorial(userId:string,ctx:EditorialContext){
 export async function getEditorialStatus(userId:string):Promise<EditorialStatus>{
   const projects=await listProjects(userId);
   if(!projects.length)return {stage:'idle',nextAction:'Create the first professional editorial project.'};
-  const active=projects.find(x=>!['published','rejected'].includes(x.stage));const p=active||projects[0];
+  const active=projects.find(x=>!['queued','published','rejected'].includes(x.stage));const p=active||projects[0];
   const cooldown=!active&&p.stage==='published'&&hoursSince(p.publishedAt||p.updatedAt)<COOLDOWN_HOURS;
   const scenes=p.storyboard?await sceneRecords(userId,p.projectKey):[];
   const actions:Record<string,string>={
-    research:'Research official sources and current demand.',problem:'Select a concrete demonstrable problem.',outline:'Design implementation outline.',script:'Write technical script.',fact_review:'Verify material claims.',storyboard:'Create proof-oriented visual plan.',quality_gate:'Apply strict editorial Quality Gate.',revision:'Structurally revise rejected package.',rendering:'Render one neural-narrated scene.',assembly:'Assemble and verify master assets.',ready:'Approved package awaiting unlisted upload.',published:'Collect performance and wait for next editorial cycle.',rejected:'Archive and start a new concept later.'
+    research:'Research official sources and current demand.',problem:'Select a concrete demonstrable problem.',outline:'Design implementation outline.',script:'Write technical script.',fact_review:'Verify material claims.',storyboard:'Create proof-oriented visual plan.',quality_gate:'Apply strict editorial Quality Gate.',revision:'Structurally revise rejected package.',rendering:'Render one neural-narrated scene.',assembly:'Assemble and verify master assets.',ready:'Approved package awaiting queue assignment.',queued:'Approved package queued for a production slot.',published:'Collect performance and start the next editorial cycle.',rejected:'Archive and start a new concept later.'
   };
   return {projectKey:p.projectKey,stage:cooldown?'cooldown':p.stage,title:p.title||p.selected?.workingTitle,problem:p.selected?.problem,revision:p.revision,qualityScore:p.gate?.scores.overall,blockers:p.gate?.blockers.slice(0,5),renderedScenes:scenes.filter(x=>x.status==='rendered').length,totalScenes:p.storyboard?.length,youtubeUrl:p.youtubeUrl,lastError:p.lastError,createdAt:p.createdAt,updatedAt:p.updatedAt,nextAction:cooldown?`Editorial cooldown: one long video every ${COOLDOWN_HOURS}h.`:(actions[p.stage]||'Continue pipeline.')};
+}
+
+export async function markQueued(userId:string,projectKey:string){
+  const project=(await listProjects(userId)).find(x=>x.projectKey===projectKey);
+  if(!project)throw new Error('Editorial project not found');
+  if(project.stage==='queued'||project.stage==='published')return;
+  if(project.stage!=='ready')throw new Error(`Editorial project is not ready (stage=${project.stage})`);
+  project.stage='queued';project.lastError=undefined;await saveProject(project);
 }
 
 export async function markPublished(userId:string,projectKey:string,videoId:string,url:string){
