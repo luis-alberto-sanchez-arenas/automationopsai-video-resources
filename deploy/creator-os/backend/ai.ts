@@ -80,7 +80,7 @@ async function compatibleGenerate(options:GenerateOptions,provider:CompatiblePro
     zai:{base:'https://api.z.ai/api/paas/v4',model:'glm-4.7-flash'},
     qwen:{base:'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',model:'qwen-turbo'},
     groq:{base:'https://api.groq.com/openai/v1',model:'qwen/qwen3.8-27b'},
-    openrouter:{base:'https://openrouter.ai/api/v1',model:'openrouter/free'},
+    openrouter:{base:'https://openrouter.ai/api/v1',model:'qwen/qwen3.8-27b:free'},
     cloudflare:{base:process.env.CLOUDFLARE_ACCOUNT_ID?`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/v1`:'',model:'@cf/zai-org/glm-4.7-flash'},
     compatible:{base:'',model:''},
   };
@@ -97,6 +97,7 @@ async function compatibleGenerate(options:GenerateOptions,provider:CompatiblePro
     temperature:options.temperature ?? 0.3,
     max_tokens:options.maxTokens || 6000,
   };
+  if(provider==='openrouter')payload.reasoning={enabled:false};
   if (options.schema) {
     payload.response_format={
       type:'json_schema',
