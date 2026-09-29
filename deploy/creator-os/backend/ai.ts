@@ -121,6 +121,40 @@ async function compatibleGenerate(options:GenerateOptions,provider:'deepseek'|'k
   return text;
 }
 
+
+type ExtraProvider={name:string;baseUrl:string;model:string;apiKeyEnv:string};
+function extraProviders():ExtraProvider[]{
+  const raw=process.env.AI_EXTRA_PROVIDERS_JSON?.trim();
+  if(!raw)return [];
+  try{
+    const parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed))return [];
+    return parsed.filter((x:any)=>x&&typeof x.name==='string'&&typeof x.baseUrl==='string'&&typeof x.model==='string'&&typeof x.apiKeyEnv==='string');
+  }catch{return [];}
+}
+async function extraCompatibleGenerate(options:GenerateOptions,p:ExtraProvider){
+  const key=process.env[p.apiKeyEnv]||'';
+  if(!key)throw new Error(`${p.name}: missing ${p.apiKeyEnv}`);
+  const base=p.baseUrl.replace(/\/$/,'');
+  const payload:any={
+    model:p.model,
+    messages:[{role:'system',content:options.system},{role:'user',content:options.prompt}],
+    temperature:options.temperature??0.3,
+    max_tokens:options.maxTokens||6000,
+  };
+  if(options.schema)payload.response_format={type:'json_object'};
+  const response=await fetch(`${base}/chat/completions`,{
+    method:'POST',
+    headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
+    body:JSON.stringify(payload),
+  });
+  const data=await response.json() as any;
+  if(!response.ok)throw new Error(`${p.name} failed (${response.status}): ${JSON.stringify(data).slice(0,700)}`);
+  const text=data?.choices?.[0]?.message?.content;
+  if(typeof text!=='string'||!text.trim())throw new Error(`${p.name} returned no text`);
+  return text;
+}
+
 export async function generateText(options:GenerateOptions) {
   const requested=(process.env.AI_PROVIDER_ORDER||'zai,qwen,gemini,deepseek,kimi,compatible').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
   const providers=[...new Set(requested)] as Array<'gemini'|'deepseek'|'kimi'|'zai'|'qwen'|'compatible'>;
@@ -143,6 +177,12 @@ export async function generateText(options:GenerateOptions) {
       if(!process.env[`${prefix}_API_KEY`])continue;
       return await compatibleGenerate(options,provider);
     }catch(error){cool(provider,error);failures.push(`${provider}: ${error instanceof Error?error.message:String(error)}`);}
+  }
+  for(const extra of extraProviders()){
+    const id=`extra:${extra.name}`;
+    if(cooling(id)){failures.push(`${extra.name}: cooling down after quota/transient failure`);continue;}
+    try{return await extraCompatibleGenerate(options,extra);}
+    catch(error){cool(id,error);failures.push(`${extra.name}: ${error instanceof Error?error.message:String(error)}`);}
   }
   throw new Error(`All configured AI providers failed: ${failures.join(' | ').slice(0,1800)}`);
 }
