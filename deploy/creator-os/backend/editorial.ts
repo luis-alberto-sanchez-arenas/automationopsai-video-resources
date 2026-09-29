@@ -364,7 +364,11 @@ async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
     const common=['-map','0:v:0','-map','1:a:0','-r','30','-c:v','libx264','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-af','loudnorm=I=-16:TP=-1.5:LRA=10','-shortest','-movflags','+faststart',video];
     if(scene.visualType==='broll'){
       const source=BROLL[scene.sceneIndex%BROLL.length];
-      await runFfmpeg(['-y','-stream_loop','-1','-ss',String((scene.sceneIndex*3)%12),'-i',source,'-i',audio,'-vf',vf(scene,subs),...common]);
+      try{
+        await runFfmpeg(['-y','-stream_loop','-1','-ss',String((scene.sceneIndex*3)%12),'-i',source,'-i',audio,'-vf',vf(scene,subs),...common]);
+      }catch{
+        await runFfmpeg(['-y','-f','lavfi','-i','color=c=0x07111f:s=1920x1080:r=30','-i',audio,'-vf',vf({...scene,visualType:'checklist'},subs),...common]);
+      }
     }else await runFfmpeg(['-y','-f','lavfi','-i','color=c=0x07111f:s=1920x1080:r=30','-i',audio,'-vf',vf(scene,subs),...common]);
     const info=await stat(video);if(info.size<250000)throw new Error(`Scene ${scene.sceneIndex} render too small`);
     const path=`editorial/${p.userId}/${p.projectKey}/scenes/${String(scene.sceneIndex).padStart(2,'0')}.mp4`;
