@@ -58,7 +58,7 @@ export type PublishSpec={automationKey:string;title:string;description:string;ta
 export type EditorialStatus={projectKey?:string;stage:Stage|'idle'|'cooldown';title?:string;problem?:string;revision?:number;qualityScore?:number;blockers?:string[];renderedScenes?:number;totalScenes?:number;youtubeUrl?:string;lastError?:string;createdAt?:string;updatedAt?:string;nextAction:string};
 
 function now(){return new Date().toISOString();}
-function clean(v:string){return v.replace(/\s+/g,' ').trim();}
+function clean(v:unknown){return String(v??'').replace(/\s+/g,' ').trim();}
 function score(v:unknown){const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n))):0;}
 function stripHtml(v:string){return clean(v.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&'));}
 function words(v:string){return v.trim().split(/\s+/).filter(Boolean).length;}
@@ -126,11 +126,21 @@ async function doResearch(p:Stored<Project>,ctx:EditorialContext){
   if(sources.length<3)throw new Error(`Only ${sources.length} official sources available; refusing to invent a tutorial`);
   const result=await generateJson<{opportunities:Opportunity[]}>({
     system:'You are a senior technical YouTube editor. Find concrete practitioner problems across AI automation, agents, software architecture, cybersecurity, productivity, AI-assisted design, design systems, accessibility and design-to-code. Reject hype, generic tool lists, income claims, trend-only topics and topics that cannot be demonstrated. A popular topic is insufficient: require a specific competitive gap that existing tutorials usually omit. Use only supplied source keys.',
-    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,20).join('\n')}\n\nRecent titles to avoid repeating:\n${ctx.recentVideos.slice(0,12).map(x=>x.title).join('\n')}\n\nTopics blocked because they remained at zero views for at least seven days:\n${(ctx.blockedTopics||[]).slice(0,12).join('\n')||'None'}\n\nOfficial sources:\n${compactSourceText(sources,650)}\n\nProduce 4-6 evidence-backed, demonstrable opportunities. Never propose a blocked topic or a semantic variant. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
+    prompt:`Demand/title signals:\n${ctx.demandSignals.slice(0,20).join('\n')}\n\nRecent titles to avoid repeating:\n${ctx.recentVideos.slice(0,12).map(x=>x.title).join('\n')}\n\nTopics blocked because they remained at zero views for at least seven days:\n${(ctx.blockedTopics||[]).slice(0,12).join('\n')||'None'}\n\nOfficial sources:\n${compactSourceText(sources,650)}\n\nProduce exactly 4 evidence-backed, demonstrable opportunities. Keep problem, audience, whyNow and proofArtifact concise (max 180 characters each). Never propose a blocked topic or a semantic variant. Each opportunity must state the underserved question or missing proof that differentiates it from common tutorials. Score utility and demonstrability 0-100.`,
     schema:RESEARCH_SCHEMA,temperature:.35,maxTokens:2200,
   });
   const keys=new Set(sources.map(x=>x.key));
-  const opportunities=result.opportunities.map(x=>({...x,problem:clean(x.problem),audience:clean(x.audience),whyNow:clean(x.whyNow),proofArtifact:clean(x.proofArtifact),sourceKeys:x.sourceKeys.filter(k=>keys.has(k)).slice(0,4),utilityScore:score(x.utilityScore),demoScore:score(x.demoScore)})).filter(x=>x.sourceKeys.length&&x.utilityScore>=78&&x.demoScore>=78);
+  const rawOpportunities=Array.isArray(result?.opportunities)?result.opportunities:[];
+  const opportunities=rawOpportunities.map((x:any)=>({
+    ...x,
+    problem:clean(x?.problem).slice(0,220),
+    audience:clean(x?.audience).slice(0,180),
+    whyNow:clean(x?.whyNow).slice(0,180),
+    proofArtifact:clean(x?.proofArtifact).slice(0,180),
+    sourceKeys:(Array.isArray(x?.sourceKeys)?x.sourceKeys:[]).filter((k:string)=>keys.has(k)).slice(0,4),
+    utilityScore:score(x?.utilityScore),
+    demoScore:score(x?.demoScore)
+  })).filter((x:any)=>x.problem&&x.sourceKeys.length&&x.utilityScore>=78&&x.demoScore>=78);
   if(opportunities.length<3)throw new Error('Research produced fewer than three strong opportunities');
   p.research={sources,opportunities,demandSignals:ctx.demandSignals.slice(0,30)};
   p.stage='problem';p.lastError=undefined;await saveProject(p);
