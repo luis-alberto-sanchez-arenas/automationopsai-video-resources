@@ -91,7 +91,10 @@ function compactSourceText(sources:Source[],charsPerSource=1100){
 }
 
 async function listProjects(userId:string){
-  const {items}=await db.list<Project>(PROJECT_TABLE,{filter:{userId},limit:30});
+  // db.list orders by physical created_at ASC before LIMIT, so a small limit
+  // eventually hides new projects completely. Load the bounded full project
+  // history and sort in application code so the newest active record is visible.
+  const {items}=await db.list<Project>(PROJECT_TABLE,{filter:{userId},limit:5000});
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
 async function saveProject(project:Stored<Project>){
@@ -107,8 +110,26 @@ async function newProject(userId:string){
 }
 async function currentProject(userId:string){
   const projects=await listProjects(userId);
-  const active=projects.find(x=>!['queued','published','rejected'].includes(x.stage));
-  if(active)return {project:active,cooldown:false};
+  const terminal=new Set<Stage>(['queued','published','rejected']);
+  const rank:Record<Stage,number>={
+    research:0,problem:1,outline:2,script:3,fact_review:4,storyboard:5,quality_gate:6,
+    revision:7,rendering:8,assembly:9,ready:10,queued:11,published:12,rejected:-1
+  };
+  const active=projects
+    .filter(x=>!terminal.has(x.stage))
+    .sort((a,b)=>(rank[b.stage]-rank[a.stage])||b.updatedAt.localeCompare(a.updatedAt));
+  if(active.length){
+    const chosen=active[0];
+    // Invariant: only one editorial project may be active. Previous pagination
+    // bug created duplicate research/problem projects; archive them so they
+    // cannot resume later and consume free-provider quota.
+    for(const duplicate of active.slice(1)){
+      duplicate.stage='rejected';
+      duplicate.lastError=`Superseded duplicate active project; continuing ${chosen.projectKey}`;
+      await saveProject(duplicate);
+    }
+    return {project:chosen,cooldown:false};
+  }
   const last=projects.find(x=>x.stage==='published');
   if(last&&hoursSince(last.publishedAt||last.updatedAt)<COOLDOWN_HOURS)return {project:last,cooldown:true};
   return {project:await newProject(userId),cooldown:false};
