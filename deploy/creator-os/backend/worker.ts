@@ -74,8 +74,14 @@ async function editorialCycle(){
     const billingBlocked=/\b402\b|insufficient balance|suspended due to insufficient/i.test(message);
     const quotaBlocked=/\b429\b|RESOURCE_EXHAUSTED/i.test(message);
     const transient=/\b503\b|UNAVAILABLE|high demand|temporar/i.test(message);
-    const delay=billingBlocked?6*60*60_000:quotaBlocked?60*60_000:transient?5*60_000:
-      Math.min(60*60_000,5*60_000*2**Math.min(4,scheduler.editorialFailures-1));
+    const retryMatch=message.match(/retry-after=(\d+)/i)||message.match(/retry in\s+(\d+)m(?:in)?\s*(\d+)?s?/i);
+    let quotaDelay=5*60_000;
+    if(retryMatch){
+      if(/retry-after=/i.test(retryMatch[0]))quotaDelay=Math.max(60_000,Math.min(30*60_000,Number(retryMatch[1])*1000));
+      else quotaDelay=Math.max(60_000,Math.min(30*60_000,(Number(retryMatch[1])*60+Number(retryMatch[2]||0))*1000));
+    }
+    const delay=billingBlocked?6*60*60_000:quotaBlocked?quotaDelay:transient?5*60_000:
+      Math.min(30*60_000,3*60_000*2**Math.min(4,scheduler.editorialFailures-1));
     scheduler.nextEditorialAt=new Date(Date.now()+delay).toISOString();scheduler.lastEditorialAt=new Date().toISOString();
     scheduler.lastEditorialResult=`failed: ${message.slice(0,500)}`;await saveState(scheduler);throw error;
   }
