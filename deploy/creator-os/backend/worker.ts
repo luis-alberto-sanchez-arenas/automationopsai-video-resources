@@ -53,12 +53,6 @@ async function editorialCycle(){
       await saveState(scheduler);
     }else return;
   }
-  if(!await youtubeConnected(USER_ID)){
-    scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult='waiting-youtube-oauth';
-    scheduler.nextEditorialAt=new Date(Date.now()+60*60_000).toISOString();await saveState(scheduler);
-    console.log('worker: waiting for YouTube OAuth');
-    return;
-  }
   try{
     const context=await demandContext(USER_ID);
     const step=await advanceEditorial(USER_ID,context);
