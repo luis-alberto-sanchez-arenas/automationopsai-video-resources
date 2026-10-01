@@ -54,6 +54,7 @@ app.get('/api/_healthcheck',(_req,res)=>res.json({ok:true,service:'AutomationOps
 
 app.get('/api/public/status',async(_req,res,next)=>{
   try{
+    res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
     const editorial=dashboardEditorial(await getEditorialStatus(USER_ID));
     res.json({
       editorial:{stage:editorial.stage,title:editorial.title,qualityScore:editorial.qualityScore,renderedScenes:editorial.renderedScenes,totalScenes:editorial.totalScenes,nextAction:editorial.nextAction,youtubeUrl:editorial.youtubeUrl},
@@ -80,6 +81,7 @@ app.get('/api/public/analytics-status',async(_req,res,next)=>{
 
 app.get('/api/status',requireAdmin,async(_req,res,next)=>{
   try{
+    res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
     const [rawEditorial,jobs,connected,channel,tiktokJobs,tiktokIsConnected]=await Promise.all([
       getEditorialStatus(USER_ID),listJobs(USER_ID),youtubeConnected(USER_ID),channelSummary(USER_ID).catch(()=>null),
       listTikTokJobs(USER_ID),tiktokConnected(USER_ID),
@@ -114,6 +116,7 @@ app.get('/api/status',requireAdmin,async(_req,res,next)=>{
 
 app.get('/api/jobs',requireAdmin,async(req,res,next)=>{
   try{
+    res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
     const all=await listJobs(USER_ID);
     const page=Math.max(1,Number.parseInt(String(req.query.page||'1'),10)||1);
     const pageSize=Math.max(5,Math.min(25,Number.parseInt(String(req.query.pageSize||'8'),10)||8));
