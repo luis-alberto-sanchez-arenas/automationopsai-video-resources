@@ -141,13 +141,27 @@ export async function oauthStart(userId:string){
   });
   return {authUrl:`https://accounts.google.com/o/oauth2/v2/auth?${params}`,redirectUri:redirectUri()};
 }
+const connectionCache=new Map<string,{ok:boolean;until:number}>();
 export async function oauthComplete(userId:string,code:string,stateValue:string){
   const {clientSecret}=clientSecrets();const owner=verifyState(stateValue,clientSecret);
   if(owner!==userId)throw new Error('OAuth state does not belong to this owner');
   const refresh=await exchangeCode(code);await saveToken(userId,refresh,clientSecret);
+  connectionCache.delete(userId);
   return {ok:true};
 }
-export async function youtubeConnected(userId:string){return Boolean(await tokenFor(userId));}
+export async function youtubeConnected(userId:string){
+  const cached=connectionCache.get(userId);
+  if(cached&&cached.until>Date.now())return cached.ok;
+  if(!await tokenFor(userId)){connectionCache.set(userId,{ok:false,until:Date.now()+30_000});return false;}
+  try{
+    await accessToken(userId);
+    connectionCache.set(userId,{ok:true,until:Date.now()+60_000});
+    return true;
+  }catch{
+    connectionCache.set(userId,{ok:false,until:Date.now()+30_000});
+    return false;
+  }
+}
 
 type ManagedVideoMetric={
   id:string;title:string;publishedAt:string|null;privacyStatus:string;
@@ -179,8 +193,11 @@ function searchSeed(title:string){
 }
 
 export async function demandContext(userId:string):Promise<EditorialContext>{
-  if(!await tokenFor(userId))return {demandSignals:[],recentVideos:await recentEditorialVideos(userId),blockedTopics:[]};
-  const access=await accessToken(userId);
+  const recentVideos=await recentEditorialVideos(userId);
+  if(!await tokenFor(userId))return {demandSignals:[],recentVideos,blockedTopics:[]};
+  let access:string;
+  try{access=await accessToken(userId);}
+  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}
   const performance=await managedVideoMetrics(userId,access).catch(()=>[]);
   const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);
   const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);
@@ -205,7 +222,7 @@ export async function demandContext(userId:string):Promise<EditorialContext>{
   const pending=commitments.filter(x=>x.status==='pending').map(x=>`AUDIENCE COMMITMENT (priority): deliver ${x.trigger} requested on ${x.sourceTitle}`);
   return {
     demandSignals:[...pending,...signals].slice(0,40),
-    recentVideos:await recentEditorialVideos(userId),
+    recentVideos,
     blockedTopics:stale.map(x=>x.title),
   };
 }
