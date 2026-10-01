@@ -226,31 +226,37 @@ async function writeScript(p:Stored<Project>){
   throw new Error(`Script generation failed quality validation after retries: ${lastIssue}`);
 }
 
-const FACT_SCHEMA:any={type:'object',properties:{verifiedScript:{type:'string'},claims:{type:'array',minItems:4,items:{type:'object',properties:{claim:{type:'string'},sourceKeys:{type:'array',items:{type:'string'}},supported:{type:'boolean'},confidence:{type:'number'},note:{type:'string'}},required:['claim','sourceKeys','supported','confidence','note']}}},required:['verifiedScript','claims']};
+// The fact gate deliberately returns only a compact claim ledger. Asking a
+// free-tier model to echo a 1,000+ word script inside JSON made otherwise valid
+// responses hit their output limit and left the pipeline stuck on malformed
+// JSON. The script is allowed through only when every material claim passes;
+// any unsupported claim sends the project back to revision.
+const FACT_SCHEMA:any={type:'object',properties:{claims:{type:'array',minItems:4,items:{type:'object',properties:{claim:{type:'string'},sourceKeys:{type:'array',items:{type:'string'}},supported:{type:'boolean'},confidence:{type:'number'},note:{type:'string'}},required:['claim','sourceKeys','supported','confidence','note']}}},required:['claims']};
 async function factReview(p:Stored<Project>){
   if(!p.research||!p.script||!p.claimDrafts?.length)throw new Error('Fact-review inputs missing');
   const keys=new Set(p.claimDrafts.flatMap(x=>x.sourceKeys));
   const sources=p.research.sources.filter(x=>keys.has(x.key));
   const compactEvidence=sources.map(x=>`[${x.key}] ${x.title}\n${x.excerpt.slice(0,1400)}`).join('\n\n');
   const compactClaims=p.claimDrafts.slice(0,12).map(x=>({claim:x.claim,sourceKeys:x.sourceKeys}));
-  const r=await generateJson<{verifiedScript:string;claims:Claim[]}>({
-    system:'Be a strict factual reviewer. Keep only claims directly supported by the supplied official evidence. Remove unsupported claims from verifiedScript. The returned claims ledger must contain only claims that still appear in verifiedScript. Do not add new factual claims. Return concise notes.',
-    prompt:`Script:\n${p.script}\n\nClaims:\n${JSON.stringify(compactClaims)}\n\nOfficial evidence:\n${compactEvidence}`,
-    schema:FACT_SCHEMA,maxTokens:2800,temperature:.05,
+  const r=await generateJson<{claims:Claim[]}>({
+    system:'Be a strict factual reviewer. Evaluate each supplied material claim only against the supplied official evidence. Preserve every claim and its source keys in the returned ledger. Mark unsupported or ambiguous claims as unsupported. Do not rewrite the script, add claims, or reveal reasoning. Keep each note under 25 words.',
+    prompt:`Claims to evaluate:\n${JSON.stringify(compactClaims)}\n\nOfficial evidence:\n${compactEvidence}`,
+    schema:FACT_SCHEMA,maxTokens:1500,temperature:.05,
   });
-  const verified=String(r.verifiedScript||'').trim();
   const claims=(Array.isArray(r.claims)?r.claims:[])
     .map(x=>({...x,claim:clean(x.claim||''),confidence:score(x.confidence),note:clean(x.note||'')}))
     .filter(x=>x.claim);
   const supported=claims.filter(x=>x.supported&&x.confidence>=70);
-  const wc=words(verified);
-  p.script=verified;p.claims=supported;
-  if(wc>=900&&supported.length>=4){
+  const reviewedAll=claims.length===compactClaims.length;
+  const allSupported=reviewedAll&&supported.length===compactClaims.length;
+  const wc=words(p.script);
+  p.claims=supported;
+  if(wc>=900&&allSupported&&supported.length>=4){
     p.stage='storyboard';p.lastError=undefined;
   }else if(p.revision>=2){
-    p.stage='rejected';p.lastError=`Factual gate rejected: verifiedScript=${wc} words, supportedClaims=${supported.length}`;
+    p.stage='rejected';p.lastError=`Factual gate rejected: script=${wc} words, reviewedClaims=${claims.length}/${compactClaims.length}, supportedClaims=${supported.length}`;
   }else{
-    p.stage='revision';p.lastError=`Factual gate needs revision: verifiedScript=${wc} words, supportedClaims=${supported.length}`;
+    p.stage='revision';p.lastError=`Factual gate needs revision: script=${wc} words, reviewedClaims=${claims.length}/${compactClaims.length}, supportedClaims=${supported.length}`;
   }
   await saveProject(p);
 }

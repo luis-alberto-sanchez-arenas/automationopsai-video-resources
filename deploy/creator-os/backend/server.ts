@@ -21,6 +21,20 @@ app.disable('x-powered-by');
 app.use(express.json({limit:'2mb'}));
 app.get('/_storage',serveBlob);
 
+function youtubeAuthUnavailable(error:unknown){
+  const message=error instanceof Error?error.message:String(error);
+  return /expired or revoked|invalid_grant|not authorized|unable to refresh google access token/i.test(message);
+}
+function unavailableAnalytics(error:unknown){
+  const message=error instanceof Error?error.message:String(error);
+  return {
+    channel:null,
+    period:{days:28,views:0,watchMinutes:0,subscribersGained:0,subscribersLost:0,subscriberDelta:0,available:false,error:message},
+    topVideos:[],staleZeroViewVideos:[],totals:{views:0,likes:0,comments:0},
+    updatedAt:new Date().toISOString(),requiresReauthorization:true,
+  };
+}
+
 function dashboardEditorial(editorial:Awaited<ReturnType<typeof getEditorialStatus>>){
   if(AUTO_EDITORIAL_ENABLED)return editorial;
   return {
@@ -76,7 +90,10 @@ app.get('/api/public/analytics-status',async(_req,res,next)=>{
       reason:analytics?.period?.available?null:'youtube-analytics-unavailable',
       updatedAt:analytics?.updatedAt||null,
     });
-  }catch(e){next(e);}
+  }catch(e){
+    if(youtubeAuthUnavailable(e))return res.json({ok:false,periodAvailable:false,staleZeroViewCount:0,reason:'youtube-reauthorization-required',updatedAt:new Date().toISOString()});
+    next(e);
+  }
 });
 
 app.get('/api/status',requireAdmin,async(_req,res,next)=>{
@@ -142,12 +159,12 @@ app.get('/api/jobs',requireAdmin,async(req,res,next)=>{
 
 app.get('/api/analytics',requireAdmin,async(req,res,next)=>{
   try{res.json(await channelAnalytics(USER_ID,Number(req.query.days||28)));}
-  catch(e){next(e);}
+  catch(e){if(youtubeAuthUnavailable(e))return res.json(unavailableAnalytics(e));next(e);}
 });
 
 app.get('/api/engagement',requireAdmin,async(_req,res,next)=>{
   try{res.json({items:await engagementCommitments(USER_ID)});}
-  catch(e){next(e);}
+  catch(e){if(youtubeAuthUnavailable(e))return res.json({items:[],requiresReauthorization:true});next(e);}
 });
 
 app.post('/api/jobs/:id/retry',requireAdmin,async(req,res,next)=>{
