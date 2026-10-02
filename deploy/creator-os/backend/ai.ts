@@ -51,7 +51,10 @@ async function geminiGenerate(options:GenerateOptions, modelOverride?:string) {
     }),
   });
 
-  if (!response.ok && options.schema) {
+  // Retry without structured-output syntax only when the endpoint rejects the
+  // syntax itself. Retrying quota, billing or outage responses doubled free
+  // tier consumption without any chance of success.
+  if (!response.ok && options.schema && [400,404,415,422].includes(response.status)) {
     delete generationConfig.responseSchema;
     response = await fetch(url,{
       method:'POST',
@@ -109,13 +112,18 @@ async function compatibleGenerate(options:GenerateOptions,provider:CompatiblePro
     : [model];
   const failures:string[]=[];
   for(const candidateModel of models){
-    const attemptPayload={...payload,model:candidateModel};
+    const requested=Number(payload.max_tokens||6000);
+    // Groq's free Qwen lane enforces a 1k output-token-per-minute ceiling.
+    // Keep headroom for JSON framing and use chunked editorial generation for
+    // long artifacts instead of submitting an impossible request.
+    const modelLimit=provider==='groq'&&/qwen/i.test(candidateModel)?900:requested;
+    const attemptPayload={...payload,model:candidateModel,max_tokens:Math.min(requested,modelLimit)};
     let response=await fetch(`${base}/chat/completions`,{
       method:'POST',
       headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
       body:JSON.stringify(attemptPayload),
     });
-    if (!response.ok && options.schema) {
+    if (!response.ok && options.schema && [400,404,415,422].includes(response.status)) {
       const fallbackPayload:any={...attemptPayload};
       delete fallbackPayload.response_format;
       fallbackPayload.messages=[
