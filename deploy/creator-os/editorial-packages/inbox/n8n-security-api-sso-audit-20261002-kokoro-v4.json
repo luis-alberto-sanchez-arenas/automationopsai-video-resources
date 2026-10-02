@@ -2,7 +2,7 @@
   "packageVersion": 1,
   "packageKey": "n8n-security-api-sso-audit-20261002-kokoro-v4",
   "format": "standard",
-  "createdAt": "2026-10-02T19:42:00Z",
+  "createdAt": "2026-10-02T19:53:00Z",
   "language": "en-US",
   "research": {
     "demandSignals": [
@@ -113,7 +113,7 @@
   },
   "review": {
     "reviewer": "ChatGPT Work/Codex editorial review",
-    "reviewedAt": "2026-10-02T19:42:00Z",
+    "reviewedAt": "2026-10-02T19:53:00Z",
     "scores": {"utility": 96, "demonstrability": 95, "factuality": 98, "originality": 93, "narrative": 92, "visualPlan": 93, "monetizationSafety": 98, "thumbnail": 91, "overall": 95},
     "checks": {"officialSources": true, "claimEvidence": true, "originality": true, "monetizationPolicy": true, "narrationStoryboardSync": true, "commercialRights": true, "syntheticMediaDisclosure": true}
   }
