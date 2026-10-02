@@ -21,7 +21,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
       - name: Install pinned runtime
         run: pip install --disable-pip-version-check kokoro-onnx==0.6.1 soundfile==0.13.1
       - uses: actions/cache@v4
