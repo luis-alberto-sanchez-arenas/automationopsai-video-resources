@@ -11,6 +11,15 @@ card-based visual language is not sufficient for public monetization-oriented
 releases. Public automation accepts only reviewed masters produced by a
 topic-specific renderer and passing the complete QA manifest.
 
+## ChatGPT membership bridge
+
+The membership is used through ChatGPT Work/Codex for research, scripting,
+source review, storyboard design and code review. It is not an API key and does
+not provide Railway with OpenAI API quota. Reviewed packages are transferred
+through `editorial-packages/inbox`; the worker revalidates live evidence,
+rights, narration/storyboard synchronization and deterministic quality gates
+before rendering. No ChatGPT session token is stored or requested.
+
 ## Removed from the AppDeploy version
 
 - generic legacy long-form generator

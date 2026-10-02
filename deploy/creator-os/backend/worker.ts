@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { db, initPlatform, withLock } from './platform.js';
-import { advanceEditorial, markQueued } from './editorial.js';
+import { advanceChatGptEditorial, advanceEditorial, importChatGptEditorialPackages, markQueued } from './editorial.js';
 import { demandContext, ensurePublishJob, processOnePublishStep, promoteApprovedReviewedJobs, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
 
@@ -26,7 +26,10 @@ async function saveState(value:Awaited<ReturnType<typeof state>>){
 
 async function editorialCycle(){
   const scheduler=await state();
-  if(!AUTO_EDITORIAL){
+  const packageMode=process.env.CHATGPT_EDITORIAL_PACKAGES_ENABLED!=='false';
+  const packageImport=packageMode?await importChatGptEditorialPackages(USER_ID):{imported:[],skipped:[],failed:[]};
+  if(packageImport.imported.length||packageImport.failed.length)console.log(`worker: chatgpt-editorial-packages=${JSON.stringify(packageImport)}`);
+  if(!AUTO_EDITORIAL&&!packageMode){
     scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult='disabled-quality-protection';
     await saveState(scheduler);return;
   }
@@ -36,6 +39,10 @@ async function editorialCycle(){
     scheduler.providerConfigRev=providerConfigRev;
     scheduler.nextEditorialAt=undefined;
     scheduler.editorialFailures=0;
+    await saveState(scheduler);
+  }
+  if(!AUTO_EDITORIAL&&packageMode&&scheduler.nextEditorialAt){
+    scheduler.nextEditorialAt=undefined;scheduler.editorialFailures=0;
     await saveState(scheduler);
   }
   if(scheduler.nextEditorialAt&&Date.now()<new Date(scheduler.nextEditorialAt).getTime()){
@@ -55,7 +62,12 @@ async function editorialCycle(){
   }
   try{
     const context=await demandContext(USER_ID);
-    const step=await advanceEditorial(USER_ID,context);
+    const step=AUTO_EDITORIAL?await advanceEditorial(USER_ID,context):await advanceChatGptEditorial(USER_ID,context);
+    if(step.status==='idle'){
+      scheduler.editorialFailures=0;scheduler.nextEditorialAt=undefined;
+      scheduler.lastEditorialAt=new Date().toISOString();scheduler.lastEditorialResult='membership-package-idle';
+      await saveState(scheduler);return;
+    }
     await ensurePublishJob(USER_ID,step.publishSpec);
     await ensureTikTokPublishJob(USER_ID,step.publishSpec);
     if(step.status==='ready'&&step.project?.projectKey)await markQueued(USER_ID,step.project.projectKey);
@@ -110,7 +122,7 @@ cron.schedule('* * * * *',()=>void guarded('editorial',editorialCycle),{timezone
 cron.schedule('* * * * *',()=>void guarded('publisher',publishCycle),{timezone:TIMEZONE});
 cron.schedule('30 4 * * *',()=>void guarded('metadata-repair',metadataRepairCycle),{timezone:TIMEZONE});
 
-console.log(`AutomationOpsAI worker started: editorial=${AUTO_EDITORIAL?'enabled/1min':'disabled-quality-protection'}; publisher=1min; timezone=${TIMEZONE}; production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
-if(AUTO_EDITORIAL)void guarded('startup-editorial',editorialCycle);
+console.log(`AutomationOpsAI worker started: editorial=${AUTO_EDITORIAL?'internal+membership':'membership-packages-only'}; publisher=1min; timezone=${TIMEZONE}; production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
+void guarded('startup-editorial',editorialCycle);
 void guarded('startup-publisher',publishCycle);
 void guarded('startup-metadata-repair',metadataRepairCycle);

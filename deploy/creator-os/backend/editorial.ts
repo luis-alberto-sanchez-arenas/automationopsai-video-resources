@@ -1,4 +1,4 @@
-import { readFile, stat, unlink, writeFile } from 'node:fs/promises';
+import { readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { db, storage, type Stored } from './platform.js';
@@ -45,6 +45,7 @@ type GateScores={utility:number;demonstrability:number;factuality:number;origina
 type Gate={passed:boolean;scores:GateScores;blockers:string[];revisionNotes:string[];checks:Record<string,boolean>;maxTitleSimilarity:number;maxScriptSimilarity:number};
 type Project={
   userId:string;projectKey:string;pipelineVersion:string;stage:Stage;revision:number;
+  editorialOrigin?:'internal-ai'|'chatgpt-membership';externalReview?:ExternalReview;
   research?:{sources:Source[];opportunities:Opportunity[];demandSignals:string[]};
   selected?:Selected;outline?:Outline;script?:string;claimDrafts?:Array<{claim:string;sourceKeys:string[]}>;claims?:Claim[];
   storyboard?:ScenePlan[];gate?:Gate;title?:string;description?:string;tags?:string[];
@@ -52,6 +53,21 @@ type Project={
   youtubeVideoId?:string;youtubeUrl?:string;publishedAt?:string;lastError?:string;createdAt:string;updatedAt:string;
 };
 type SceneRecord=ScenePlan&{userId:string;projectKey:string;status:'planned'|'rendered'|'failed';retryCount:number;segmentStoragePath?:string;bytes?:number;lastError?:string;createdAt:string;updatedAt:string};
+
+type ExternalReview={
+  reviewer:string;reviewedAt:string;scores:GateScores;
+  checks:{officialSources:boolean;claimEvidence:boolean;originality:boolean;monetizationPolicy:boolean;narrationStoryboardSync:boolean;commercialRights:boolean;syntheticMediaDisclosure:boolean};
+};
+type EditorialPackage={
+  packageVersion:1;packageKey:string;format:'standard';createdAt:string;language:string;
+  research:{demandSignals:string[];competitiveGap:string;sources:Array<Source&{evidenceExcerpt:string}>};
+  selected:Selected;outline:Outline;script:string;
+  claims:Array<{claim:string;sourceKeys:string[];evidenceExcerpt:string}>;
+  storyboard:ScenePlan[];
+  metadata:{title:string;description:string;tags:string[];thumbnailText:string;thumbnailSubtext:string};
+  rights:{thirdPartyMedia:boolean;originalOrProceduralVisuals:boolean;commercialUseCleared:boolean;syntheticVoiceDisclosed:boolean};
+  review:ExternalReview;
+};
 
 export type EditorialContext={demandSignals:string[];recentVideos:Array<{title:string;transcript?:string}>;blockedTopics?:string[]};
 export type PublishSpec={automationKey:string;title:string;description:string;tags:string[];transcript:string;preparedStoragePath:string;thumbnailStoragePath:string};
@@ -71,6 +87,95 @@ function topicSimilarity(left:string,right:string){
   const a=topicTokens(left),b=topicTokens(right);if(!a.size||!b.size)return 0;
   const common=[...a].filter(x=>b.has(x)).length;
   return common/Math.min(a.size,b.size);
+}
+
+function normalizedEvidence(v:string){return stripHtml(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function requireText(value:unknown,label:string,min=1,max=10000){
+  const text=String(value??'').trim();
+  if(text.length<min||text.length>max)throw new Error(`${label} must contain ${min}-${max} characters`);
+  return text;
+}
+function safePackageKey(value:unknown){
+  const key=String(value??'');
+  if(!/^[a-z0-9][a-z0-9-]{5,79}$/.test(key))throw new Error('packageKey must be a 6-80 character lowercase slug');
+  return key;
+}
+function safeSourceKey(value:unknown){
+  const key=String(value??'');
+  if(!/^[a-z0-9][a-z0-9-]{1,79}$/.test(key))throw new Error('source key must be a 2-80 character lowercase slug');
+  return key;
+}
+function safeHttpsUrl(value:unknown,label:string){
+  const url=new URL(String(value??''));
+  if(url.protocol!=='https:'||url.username||url.password||url.hostname==='localhost'||url.hostname.endsWith('.local')||/^\d+\.\d+\.\d+\.\d+$/.test(url.hostname))throw new Error(`${label} must be a public HTTPS URL`);
+  return url.toString();
+}
+
+async function verifyPackageSource(source:Source&{evidenceExcerpt:string}){
+  const url=safeHttpsUrl(source.url,`source ${source.key}`);
+  const evidence=normalizedEvidence(requireText(source.evidenceExcerpt,`source ${source.key} evidenceExcerpt`,80,900));
+  const response=await fetch(url,{redirect:'follow',headers:{'user-agent':'AutomationOpsAI/2.0 editorial-package-verifier'}});
+  if(!response.ok)throw new Error(`source ${source.key} returned HTTP ${response.status}`);
+  const body=normalizedEvidence((await response.text()).slice(0,2_000_000));
+  if(!body.includes(evidence))throw new Error(`source ${source.key} does not contain its evidenceExcerpt`);
+  return {...source,url,excerpt:stripHtml(await Promise.resolve(source.excerpt||source.evidenceExcerpt)).slice(0,4200),evidenceExcerpt:stripHtml(source.evidenceExcerpt),fetchedAt:now()};
+}
+
+function validateExternalReview(review:ExternalReview){
+  requireText(review?.reviewer,'review.reviewer',3,120);
+  const reviewedAt=new Date(review?.reviewedAt||'');
+  if(!Number.isFinite(reviewedAt.getTime()))throw new Error('review.reviewedAt is invalid');
+  const checks=review?.checks;
+  if(!checks||Object.values(checks).some(value=>value!==true))throw new Error('Every external review check must be true');
+  const scores=review?.scores;
+  if(!scores)throw new Error('review.scores is missing');
+  for(const key of ['utility','demonstrability','factuality','originality','narrative','visualPlan','monetizationSafety','thumbnail','overall'] as const){
+    if(score(scores[key])!==scores[key])throw new Error(`review.scores.${key} must be an integer from 0 to 100`);
+  }
+}
+
+async function validateEditorialPackage(raw:unknown):Promise<EditorialPackage>{
+  const pkg=raw as EditorialPackage;
+  if(pkg?.packageVersion!==1||pkg?.format!=='standard')throw new Error('Only packageVersion=1 and format=standard are supported');
+  pkg.packageKey=safePackageKey(pkg.packageKey);requireText(pkg.language,'language',2,20);
+  const createdAt=new Date(pkg.createdAt||'');
+  if(!Number.isFinite(createdAt.getTime())||createdAt.getTime()>Date.now()+300_000||Date.now()-createdAt.getTime()>7*86400_000)throw new Error('createdAt must be within the last seven days');
+  if(!pkg.research||!Array.isArray(pkg.research.sources)||pkg.research.sources.length<3)throw new Error('At least three official sources are required');
+  requireText(pkg.research.competitiveGap,'research.competitiveGap',40,600);
+  const sourceKeys=new Set<string>();
+  for(const source of pkg.research.sources){
+    const key=safeSourceKey(source.key);if(sourceKeys.has(key))throw new Error(`Duplicate source key: ${key}`);source.key=key;sourceKeys.add(key);
+    requireText(source.title,`source ${key} title`,3,180);
+  }
+  pkg.research.sources=await Promise.all(pkg.research.sources.map(verifyPackageSource));
+  if(!pkg.selected||!pkg.outline)throw new Error('selected and outline are required');
+  if(!pkg.selected.sourceKeys?.length||pkg.selected.sourceKeys.some(key=>!sourceKeys.has(key)))throw new Error('selected.sourceKeys contains an unknown source');
+  if(!Array.isArray(pkg.outline.sections)||pkg.outline.sections.length<9||pkg.outline.sections.length>14)throw new Error('outline.sections must contain 9-14 sections');
+  if(pkg.outline.sections.some(section=>!section.sourceKeys?.length||section.sourceKeys.some(key=>!sourceKeys.has(key))))throw new Error('Every outline section must reference known sources');
+  pkg.script=requireText(pkg.script,'script',3000,14000);const scriptWords=words(pkg.script);
+  if(scriptWords<1000||scriptWords>1900)throw new Error(`script must contain 1000-1900 words (received ${scriptWords})`);
+  if(!Array.isArray(pkg.claims)||pkg.claims.length<4||pkg.claims.length>12)throw new Error('claims must contain 4-12 material claims');
+  for(const [index,claim] of pkg.claims.entries()){
+    requireText(claim.claim,`claims[${index}].claim`,15,500);const evidence=normalizedEvidence(requireText(claim.evidenceExcerpt,`claims[${index}].evidenceExcerpt`,40,900));
+    if(!claim.sourceKeys?.length||claim.sourceKeys.some(key=>!sourceKeys.has(key)))throw new Error(`claims[${index}] references an unknown source`);
+    if(!claim.sourceKeys.some(key=>normalizedEvidence(pkg.research.sources.find(source=>source.key===key)?.evidenceExcerpt||'').includes(evidence)))throw new Error(`claims[${index}] evidence is absent from its cited source excerpt`);
+  }
+  if(!Array.isArray(pkg.storyboard)||pkg.storyboard.length<10||pkg.storyboard.length>12)throw new Error('storyboard must contain 10-12 scenes');
+  pkg.storyboard.forEach((scene,index)=>{
+    if(scene.sceneIndex!==index)throw new Error('storyboard sceneIndex values must be consecutive from zero');
+    if(!['diagram','code','terminal','checklist','metric'].includes(scene.visualType))throw new Error(`storyboard[${index}] uses an unsupported visualType`);
+    if(!scene.sourceKey||!sourceKeys.has(scene.sourceKey))throw new Error(`storyboard[${index}] sourceKey is unknown`);
+    requireText(scene.narration,`storyboard[${index}].narration`,80,1600);
+  });
+  if(normalizedEvidence(pkg.storyboard.map(scene=>scene.narration).join(' '))!==normalizedEvidence(pkg.script))throw new Error('Storyboard narration must exactly cover the final script in order');
+  const metadata=pkg.metadata;if(!metadata)throw new Error('metadata is missing');
+  requireText(metadata.title,'metadata.title',10,100);requireText(metadata.description,'metadata.description',80,5000);
+  if(!Array.isArray(metadata.tags)||metadata.tags.length<5||metadata.tags.length>12)throw new Error('metadata.tags must contain 5-12 precise search tags');
+  requireText(metadata.thumbnailText,'metadata.thumbnailText',3,28);requireText(metadata.thumbnailSubtext,'metadata.thumbnailSubtext',3,36);
+  const rights=pkg.rights;
+  if(!rights||rights.thirdPartyMedia!==false||rights.originalOrProceduralVisuals!==true||rights.commercialUseCleared!==true||rights.syntheticVoiceDisclosed!==true)throw new Error('Rights declaration does not permit commercial publication');
+  validateExternalReview(pkg.review);
+  return pkg;
 }
 
 async function fetchSources(){
@@ -96,6 +201,42 @@ async function listProjects(userId:string){
   // history and sort in application code so the newest active record is visible.
   const {items}=await db.list<Project>(PROJECT_TABLE,{filter:{userId},limit:5000});
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function importChatGptEditorialPackages(userId:string){
+  if(process.env.CHATGPT_EDITORIAL_PACKAGES_ENABLED==='false')return {imported:[],skipped:[],failed:[]};
+  const directory=process.env.CHATGPT_EDITORIAL_PACKAGE_DIR||join(process.cwd(),'editorial-packages','inbox');
+  let files:string[]=[];
+  try{files=(await readdir(directory)).filter(name=>name.endsWith('.json')).sort();}
+  catch(error:any){if(error?.code==='ENOENT')return {imported:[],skipped:[],failed:[]};throw error;}
+  const existing=new Set((await listProjects(userId)).map(project=>project.projectKey));
+  const imported:string[]=[],skipped:string[]=[],failed:Array<{file:string;error:string}>=[];
+  for(const file of files){
+    try{
+      const raw=await readFile(join(directory,file),'utf8');
+      if(Buffer.byteLength(raw)>1_000_000)throw new Error('Package exceeds 1 MB');
+      const pkg=await validateEditorialPackage(JSON.parse(raw));
+      const projectKey=`chatgpt-${pkg.packageKey}`;
+      if(existing.has(projectKey)){skipped.push(projectKey);continue;}
+      const createdAt=now();
+      const claims:Claim[]=pkg.claims.map(item=>({claim:clean(item.claim),sourceKeys:item.sourceKeys,supported:true,confidence:100,note:'Evidence excerpt revalidated against the live cited page during import.'}));
+      const opportunity:Opportunity={
+        problem:clean(pkg.selected.problem),audience:clean(pkg.selected.audience),whyNow:clean(pkg.selected.whyNow),proofArtifact:clean(pkg.selected.proofArtifact),
+        sourceKeys:pkg.selected.sourceKeys,utilityScore:score(pkg.selected.utilityScore),demoScore:score(pkg.selected.demoScore),
+      };
+      const record:Project={
+        userId,projectKey,pipelineVersion:PIPELINE_VERSION,stage:'quality_gate',revision:0,editorialOrigin:'chatgpt-membership',externalReview:pkg.review,
+        research:{sources:pkg.research.sources,opportunities:[opportunity],demandSignals:pkg.research.demandSignals.map(clean).filter(Boolean).slice(0,30)},
+        selected:{...pkg.selected,workingTitle:clean(pkg.selected.workingTitle).slice(0,100)},outline:pkg.outline,script:pkg.script,
+        claimDrafts:pkg.claims.map(item=>({claim:clean(item.claim),sourceKeys:item.sourceKeys})),claims,
+        storyboard:pkg.storyboard,title:clean(pkg.metadata.title).slice(0,100),description:String(pkg.metadata.description).trim(),
+        tags:pkg.metadata.tags.map(clean).filter(Boolean).slice(0,12),thumbnailText:clean(pkg.metadata.thumbnailText).slice(0,28),thumbnailSubtext:clean(pkg.metadata.thumbnailSubtext).slice(0,36),
+        createdAt,updatedAt:createdAt,
+      };
+      await db.add(PROJECT_TABLE,[record]);existing.add(projectKey);imported.push(projectKey);
+    }catch(error){failed.push({file,error:(error instanceof Error?error.message:String(error)).slice(0,500)});}
+  }
+  return {imported,skipped,failed};
 }
 async function saveProject(project:Stored<Project>){
   const {id,...record}=project;record.updatedAt=now();
@@ -340,6 +481,17 @@ const GATE_SCHEMA:any={type:'object',properties:{scores:{type:'object',propertie
 async function qualityGate(p:Stored<Project>,ctx:EditorialContext){
   if(!p.script||!p.storyboard||!p.title)throw new Error('Editorial package incomplete');
   const det=deterministicGate(p,ctx);
+  if(p.editorialOrigin==='chatgpt-membership'){
+    if(!p.externalReview)throw new Error('ChatGPT editorial package is missing its external review');
+    validateExternalReview(p.externalReview);
+    const s=p.externalReview.scores;
+    const blockers=Object.entries(det.checks).filter(([,passed])=>!passed).map(([key])=>`Deterministic check failed: ${key}`);
+    const pass=s.utility>=92&&s.demonstrability>=90&&s.factuality>=95&&s.originality>=90&&s.narrative>=88&&s.visualPlan>=90&&s.monetizationSafety>=95&&s.thumbnail>=85&&s.overall>=92&&blockers.length===0;
+    p.gate={passed:pass,scores:s,blockers,revisionNotes:pass?[]:['Rebuild the membership editorial package; automated revision would discard the reviewed provenance.'],checks:det.checks,maxTitleSimilarity:det.titleSim,maxScriptSimilarity:det.scriptSim};
+    if(pass){p.stage='rendering';p.lastError=undefined;}
+    else {p.stage='rejected';p.lastError=`Membership package Quality Gate rejected: ${blockers.join(' | ').slice(0,900)}`;}
+    await saveProject(p);return;
+  }
   const r=await generateJson<any>({
     system:'Act as a severe final editorial board. Reject generic, repetitive or mass-produced-feeling technical content, weak proof, stock-heavy visuals, unsupported claims, shallow narration, clickbait metadata and interchangeable scenes. AI may aid production but the finished work must have clear original educational value.',
     prompt:`Title: ${p.title}\nProblem: ${JSON.stringify(p.selected)}\nClaims: ${JSON.stringify(p.claims)}\nStoryboard: ${JSON.stringify(p.storyboard)}\nScript:\n${p.script}\n\nDeterministic checks: ${JSON.stringify(det)}`,
@@ -529,6 +681,10 @@ function publishSpec(p:Stored<Project>):PublishSpec|undefined{
 export async function advanceEditorial(userId:string,ctx:EditorialContext){
   const current=await currentProject(userId);if(current.cooldown)return {status:'cooldown' as const,project:current.project,publishSpec:undefined};
   const p=current.project;
+  return advanceProject(p,ctx);
+}
+
+async function advanceProject(p:Stored<Project>,ctx:EditorialContext){
   try{
     if(p.stage==='research')await doResearch(p,ctx);
     else if(p.stage==='problem')await selectProblem(p,ctx);
@@ -541,8 +697,14 @@ export async function advanceEditorial(userId:string,ctx:EditorialContext){
     else if(p.stage==='rendering')await advanceRender(p);
     else if(p.stage==='assembly')await assemble(p);
   }catch(e){p.lastError=(e instanceof Error?e.message:String(e)).slice(0,1200);await saveProject(p).catch(()=>{});throw e;}
-  const refreshed=(await listProjects(userId)).find(x=>x.projectKey===p.projectKey)||p;
+  const refreshed=(await listProjects(p.userId)).find(x=>x.projectKey===p.projectKey)||p;
   return {status:refreshed.stage,project:refreshed,publishSpec:publishSpec(refreshed)};
+}
+
+export async function advanceChatGptEditorial(userId:string,ctx:EditorialContext){
+  const project=(await listProjects(userId)).find(item=>item.editorialOrigin==='chatgpt-membership'&&!['queued','published','rejected'].includes(item.stage));
+  if(!project)return {status:'idle' as const,project:undefined,publishSpec:undefined};
+  return advanceProject(project,ctx);
 }
 
 export async function getEditorialStatus(userId:string):Promise<EditorialStatus>{
