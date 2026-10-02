@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { createInterface } from 'node:readline';
 
 export async function runFfmpeg(args:string[]) {
   await new Promise<void>((resolve,reject)=>{
@@ -12,24 +13,57 @@ export async function runFfmpeg(args:string[]) {
   });
 }
 
-async function localKokoroSpeech(text:string,outputPath:string){
+type KokoroRequest={resolve:()=>void;reject:(error:Error)=>void;timer:NodeJS.Timeout};
+let kokoroServer:{child:ReturnType<typeof spawn>;pending:Map<string,KokoroRequest>;stderr:string}|undefined;
+let kokoroRequestId=0;
+
+function failKokoroServer(server:NonNullable<typeof kokoroServer>,error:Error){
+  if(kokoroServer===server)kokoroServer=undefined;
+  for(const request of server.pending.values()){clearTimeout(request.timer);request.reject(error);}
+  server.pending.clear();
+}
+
+function ensureKokoroServer(){
+  if(kokoroServer&&!kokoroServer.child.killed)return kokoroServer;
   const python=process.env.KOKORO_PYTHON || '/opt/kokoro/bin/python';
   const script=process.env.KOKORO_SCRIPT || '/app/backend/kokoro_tts.py';
   const model=process.env.KOKORO_MODEL_PATH || '/opt/kokoro-models/kokoro-v1.0.onnx';
   const voices=process.env.KOKORO_VOICES_PATH || '/opt/kokoro-models/voices-v1.0.bin';
+  const child=spawn(python,[script,'--serve','--model',model,'--voices',voices],{stdio:['pipe','pipe','pipe']});
+  const server={child,pending:new Map<string,KokoroRequest>(),stderr:''};
+  kokoroServer=server;
+  child.stderr.on('data',chunk=>server.stderr=(server.stderr+String(chunk)).slice(-8000));
+  createInterface({input:child.stdout}).on('line',line=>{
+    try{
+      const result=JSON.parse(line) as {id?:string;ok?:boolean;error?:string};
+      if(!result.id)return;
+      const request=server.pending.get(result.id);if(!request)return;
+      server.pending.delete(result.id);clearTimeout(request.timer);
+      result.ok?request.resolve():request.reject(new Error(`Local Kokoro TTS failed: ${result.error||'unknown error'}`));
+    }catch{server.stderr=(server.stderr+`\nInvalid Kokoro response: ${line}`).slice(-8000);}
+  });
+  child.on('error',error=>failKokoroServer(server,error));
+  child.on('close',code=>failKokoroServer(server,new Error(`Local Kokoro server exited (${code}): ${server.stderr.slice(-1200)}`)));
+  return server;
+}
+
+async function localKokoroSpeech(text:string,outputPath:string){
   const voice=process.env.KOKORO_TTS_VOICE || 'af_heart';
-  const speed=process.env.KOKORO_TTS_SPEED || '0.97';
+  const speed=Number(process.env.KOKORO_TTS_SPEED || '0.97');
   const lang=process.env.KOKORO_TTS_LANG || 'en-us';
+  const server=ensureKokoroServer();
+  const id=String(++kokoroRequestId);
   await new Promise<void>((resolve,reject)=>{
-    const child=spawn(python,[script,'--output',outputPath,'--model',model,'--voices',voices,'--voice',voice,'--speed',speed,'--lang',lang],{stdio:['pipe','ignore','pipe']});
-    let stderr='';let settled=false;
-    const finish=(error?:Error)=>{if(settled)return;settled=true;clearTimeout(timer);error?reject(error):resolve();};
-    const timer=setTimeout(()=>{child.kill('SIGKILL');finish(new Error('Local Kokoro TTS timeout'));},Number(process.env.KOKORO_TTS_TIMEOUT_MS || '240000'));
-    child.stderr.on('data',chunk=>stderr=(stderr+String(chunk)).slice(-4000));
-    child.on('error',e=>finish(e));
-    child.on('close',code=>code===0?finish():finish(new Error(`Local Kokoro TTS failed (${code}): ${stderr.slice(-1200)}`)));
-    child.stdin.on('error',e=>finish(e));
-    child.stdin.end(text,'utf8');
+    const timer=setTimeout(()=>{
+      server.pending.delete(id);
+      reject(new Error(`Local Kokoro TTS timeout; stderr=${server.stderr.slice(-600)}`));
+    },Number(process.env.KOKORO_TTS_TIMEOUT_MS || '900000'));
+    server.pending.set(id,{resolve,reject,timer});
+    server.child.stdin!.write(`${JSON.stringify({id,text,output:outputPath,voice,speed,lang})}\n`,'utf8',error=>{
+      if(!error)return;
+      const request=server.pending.get(id);if(!request)return;
+      server.pending.delete(id);clearTimeout(request.timer);reject(error);
+    });
   });
   const info=await stat(outputPath);
   if(info.size<16000)throw new Error(`Local Kokoro TTS failed quality floor (${info.size} bytes)`);
