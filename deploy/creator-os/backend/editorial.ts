@@ -201,29 +201,56 @@ async function buildOutline(p:Stored<Project>){
 }
 
 const SCRIPT_SCHEMA:any={type:'object',properties:{title:{type:'string'},description:{type:'string'},tags:{type:'array',items:{type:'string'}},script:{type:'string'},claims:{type:'array',minItems:4,items:{type:'object',properties:{claim:{type:'string'},sourceKeys:{type:'array',items:{type:'string'}}},required:['claim','sourceKeys']}}},required:['title','description','tags','script','claims']};
+const SCRIPT_SEGMENT_SCHEMA:any={type:'object',properties:{narration:{type:'string'},claims:{type:'array',items:{type:'object',properties:{claim:{type:'string'},sourceKeys:{type:'array',items:{type:'string'}}},required:['claim','sourceKeys']}}},required:['narration','claims']};
+const SCRIPT_META_SCHEMA:any={type:'object',properties:{title:{type:'string'},description:{type:'string'},tags:{type:'array',items:{type:'string'}},thumbnailText:{type:'string'},thumbnailSubtext:{type:'string'}},required:['title','description','tags','thumbnailText','thumbnailSubtext']};
+
+function splitInto<T>(items:T[],count:number){
+  return Array.from({length:count},(_,i)=>items.slice(Math.floor(i*items.length/count),Math.floor((i+1)*items.length/count)));
+}
+function wordChunks(value:string,count:number){
+  const tokens=value.trim().split(/\s+/).filter(Boolean);return splitInto(tokens,count).map(x=>x.join(' '));
+}
+async function generateScriptPackage(p:Stored<Project>,sources:Source[],revisionContext?:unknown){
+  if(!p.selected||!p.outline)throw new Error('Script package inputs missing');
+  const allowed=new Set(p.selected.sourceKeys);
+  const groups=splitInto(p.outline.sections,4),previous=p.script?wordChunks(p.script,4):[];
+  const segments:string[]=[];const claims:Array<{claim:string;sourceKeys:string[]}>=[];
+  for(let index=0;index<groups.length;index++){
+    let accepted:any=null,lastWords=0;
+    for(let attempt=0;attempt<2;attempt++){
+      const r=await generateJson<any>({
+        system:'Write one contiguous segment of an expert technical-video narration. Use only supplied official evidence. Include concrete implementation, failure behavior, validation and tradeoffs. No intro/outro filler, hype, fabricated UI, unsupported product behavior or markdown headings. Return concise JSON.',
+        prompt:`Video problem:\n${JSON.stringify(p.selected)}\n\nSegment ${index+1}/4 outline:\n${JSON.stringify(groups[index])}\n\n${revisionContext?`Revision blockers:\n${JSON.stringify(revisionContext)}\n\nExisting segment to rebuild:\n${previous[index]||''}\n\n`:''}Official evidence:\n${compactSourceText(sources,850)}\n\nWrite 225-310 words that connect naturally with the full tutorial. Return every material factual claim with its supporting source keys.${attempt?' The prior segment was too short; deliver the complete requested length.':''}`,
+        schema:SCRIPT_SEGMENT_SCHEMA,maxTokens:850,temperature:attempt?.16:.26,
+      });
+      const narration=String(r.narration||'').trim();lastWords=words(narration);
+      if(lastWords>=210&&lastWords<=340){accepted={...r,narration};break;}
+    }
+    if(!accepted)throw new Error(`Chunked script segment too short after retry: segment=${index+1}, words=${lastWords}`);
+    segments.push(accepted.narration);
+    for(const item of Array.isArray(accepted.claims)?accepted.claims:[]){
+      const sourceKeys=(Array.isArray(item.sourceKeys)?item.sourceKeys:[]).filter((k:string)=>allowed.has(k));
+      const claim=clean(item.claim);if(claim&&sourceKeys.length)claims.push({claim,sourceKeys});
+    }
+  }
+  const script=segments.join('\n\n'),wc=words(script);
+  if(wc<900||wc>1360)throw new Error(`Chunked script failed length gate: ${wc} words`);
+  if(claims.length<4)throw new Error(`Chunked script claim ledger too small: ${claims.length}`);
+  const metadata=await generateJson<any>({
+    system:'Package a factual technical YouTube tutorial. Metadata must describe exactly the demonstrated outcome. Avoid clickbait, generic hashtags and service offers.',
+    prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nNarration:\n${script}\n\nReturn an honest title <=100 characters, description whose first 200 characters contain the natural search phrase, 5-12 search tags, 3-5 precise hashtags inside the description, thumbnailText <=28 characters and thumbnailSubtext <=36 characters.`,
+    schema:SCRIPT_META_SCHEMA,maxTokens:650,temperature:.18,
+  });
+  return {script,claims,metadata};
+}
 async function writeScript(p:Stored<Project>){
   if(!p.research||!p.selected||!p.outline)throw new Error('Outline missing');
   const allowed=new Set(p.selected.sourceKeys);
   const sources=p.research.sources.filter(x=>allowed.has(x.key));
-  let lastIssue='initial generation';
-  for(let attempt=0;attempt<3;attempt++){
-    const system='Write like an experienced engineer teaching a real implementation. Use concrete examples, explicit failure cases, testing, debugging, observability and tradeoffs. Never fabricate product behavior, benchmarks, versions, API fields, prices or guarantees. No generic AI-copy transitions. Return a COMPLETE long-form tutorial, never a placeholder, summary or abbreviated script.'+(attempt?` Previous attempt failed quality validation: ${lastIssue}. Correct it completely.`:'');
-    const r=await generateJson<any>({
-      system,
-      prompt:`Problem:\n${JSON.stringify(p.selected)}\n\nOutline:\n${JSON.stringify(p.outline)}\n\nOfficial evidence:\n${compactSourceText(sources,950)}\n\nWrite 1050-1450 words. Include a failure reproduction+fix, validation/test section, production tradeoff, and concise conclusion. The first 200 description characters must naturally contain the primary viewer search phrase. Return 5-12 relevant search tags and 3-5 precise hashtags in the description; use #Shorts only for an actual Short. Never add unrelated or trending-only hashtags. Return a ledger of every material factual/product claim with source keys. The script field itself must contain the full narration.`,
-      schema:SCRIPT_SCHEMA,maxTokens:3200,temperature:attempt===0?.28:.18,
-    });
-    const script=typeof r.script==='string'?r.script.trim():'';
-    const wc=words(script);
-    const rawClaims=Array.isArray(r.claims)?r.claims:[];
-    const claims=rawClaims.map((x:any)=>({claim:clean(x.claim||''),sourceKeys:Array.isArray(x.sourceKeys)?x.sourceKeys.filter((k:string)=>allowed.has(k)):[]})).filter((x:any)=>x.claim&&x.sourceKeys.length);
-    if(wc>=950&&wc<=1600&&claims.length>=4){
-      p.title=clean(r.title).slice(0,100);p.description=String(r.description||'').trim();p.tags=(Array.isArray(r.tags)?r.tags:[]).map(clean).filter(Boolean).slice(0,12);
-      p.script=script;p.claimDrafts=claims;p.stage='fact_review';p.lastError=undefined;await saveProject(p);return;
-    }
-    lastIssue=`script=${wc} words, supported claim ledger=${claims.length}`;
-  }
-  throw new Error(`Script generation failed quality validation after retries: ${lastIssue}`);
+  const result=await generateScriptPackage(p,sources);
+  p.title=clean(result.metadata.title).slice(0,100);p.description=String(result.metadata.description||'').trim();p.tags=(Array.isArray(result.metadata.tags)?result.metadata.tags:[]).map(clean).filter(Boolean).slice(0,12);
+  p.thumbnailText=clean(result.metadata.thumbnailText).slice(0,28);p.thumbnailSubtext=clean(result.metadata.thumbnailSubtext).slice(0,36);
+  p.script=result.script;p.claimDrafts=result.claims;p.stage='fact_review';p.lastError=undefined;await saveProject(p);
 }
 
 // The fact gate deliberately returns only a compact claim ledger. Asking a
@@ -241,7 +268,7 @@ async function factReview(p:Stored<Project>){
   const r=await generateJson<{claims:Claim[]}>({
     system:'Be a strict factual reviewer. Evaluate each supplied material claim only against the supplied official evidence. Preserve every claim and its source keys in the returned ledger. Mark unsupported or ambiguous claims as unsupported. Do not rewrite the script, add claims, or reveal reasoning. Keep each note under 25 words.',
     prompt:`Claims to evaluate:\n${JSON.stringify(compactClaims)}\n\nOfficial evidence:\n${compactEvidence}`,
-    schema:FACT_SCHEMA,maxTokens:1500,temperature:.05,
+    schema:FACT_SCHEMA,maxTokens:850,temperature:.05,
   });
   const claims=(Array.isArray(r.claims)?r.claims:[])
     .map(x=>({...x,claim:clean(x.claim||''),confidence:score(x.confidence),note:clean(x.note||'')}))
@@ -261,16 +288,22 @@ async function factReview(p:Stored<Project>){
   await saveProject(p);
 }
 
-const STORY_SCHEMA:any={type:'object',properties:{scenes:{type:'array',minItems:10,maxItems:12,items:{type:'object',properties:{title:{type:'string'},narration:{type:'string'},callout:{type:'string'},visualType:{type:'string',enum:['diagram','code','terminal','checklist','metric','broll']},items:{type:'array',items:{type:'string'}},code:{type:'string'},sourceKey:{type:'string'}},required:['title','narration','callout','visualType','items','code','sourceKey']}}},required:['scenes']};
+const STORY_SCHEMA:any={type:'object',properties:{scenes:{type:'array',minItems:4,maxItems:4,items:{type:'object',properties:{title:{type:'string'},narration:{type:'string'},callout:{type:'string'},visualType:{type:'string',enum:['diagram','code','terminal','checklist','metric']},items:{type:'array',items:{type:'string'}},code:{type:'string'},sourceKey:{type:'string'}},required:['title','narration','callout','visualType','items','code','sourceKey']}}},required:['scenes']};
 async function storyboard(p:Stored<Project>){
   if(!p.script||!p.selected)throw new Error('Verified script missing');
   const allowed=new Set(p.selected.sourceKeys);
-  const r=await generateJson<{scenes:Array<Omit<ScenePlan,'sceneIndex'>>}>({
-    system:'Create a professional technical-video storyboard. Visuals must prove or clarify implementation. Prefer diagrams, code/config, terminal/debug output, checklists and measurable states. B-roll is brief pacing only. Never invent screenshots of real software.',
-    prompt:`Verified script:\n${p.script}\n\nCreate 10-12 scenes. At least 60% must be diagram/code/terminal, at most 15% broll. Never use the same visual type 3 times consecutively. Each narration roughly 55-110 words. Use exact on-screen labels. sourceKey must be one of: ${[...allowed].join(', ')}.`,
-    schema:STORY_SCHEMA,maxTokens:8500,temperature:.28,
-  });
-  p.storyboard=r.scenes.map((x,i)=>({
+  const batches:Array<Omit<ScenePlan,'sceneIndex'>>=[];
+  const chunks=wordChunks(p.script,3);
+  for(let index=0;index<chunks.length;index++){
+    const r=await generateJson<{scenes:Array<Omit<ScenePlan,'sceneIndex'>>}>({
+      system:'Create four consecutive proof-oriented scenes for a professional technical video. Use diagrams, code/config, terminal/debug output, checklists or measurable states. Never use decorative B-roll or invent screenshots of real software.',
+      prompt:`Narration portion ${index+1}/3:\n${chunks[index]}\n\nCreate exactly 4 scenes. Each narration 55-95 words. At least 3 scenes must be diagram/code/terminal. Do not use the same visual type three times consecutively. Use exact short on-screen labels. sourceKey must be one of: ${[...allowed].join(', ')}.`,
+      schema:STORY_SCHEMA,maxTokens:900,temperature:.24,
+    });
+    if(r.scenes.length!==4)throw new Error(`Storyboard batch ${index+1} returned ${r.scenes.length} scenes`);
+    batches.push(...r.scenes);
+  }
+  p.storyboard=batches.map((x,i)=>({
     sceneIndex:i,title:clean(x.title),narration:clean(x.narration),callout:clean(x.callout),visualType:x.visualType,
     items:x.items.map(clean).filter(Boolean).slice(0,6),code:x.code?.trim()||undefined,sourceKey:allowed.has(x.sourceKey||'')?x.sourceKey:p.selected!.sourceKeys[0],
   }));
@@ -310,7 +343,7 @@ async function qualityGate(p:Stored<Project>,ctx:EditorialContext){
   const r=await generateJson<any>({
     system:'Act as a severe final editorial board. Reject generic, repetitive or mass-produced-feeling technical content, weak proof, stock-heavy visuals, unsupported claims, shallow narration, clickbait metadata and interchangeable scenes. AI may aid production but the finished work must have clear original educational value.',
     prompt:`Title: ${p.title}\nProblem: ${JSON.stringify(p.selected)}\nClaims: ${JSON.stringify(p.claims)}\nStoryboard: ${JSON.stringify(p.storyboard)}\nScript:\n${p.script}\n\nDeterministic checks: ${JSON.stringify(det)}`,
-    schema:GATE_SCHEMA,maxTokens:3500,temperature:.08,
+    schema:GATE_SCHEMA,maxTokens:850,temperature:.08,
   });
   const s:any={};for(const k of ['utility','demonstrability','factuality','originality','narrative','visualPlan','monetizationSafety','thumbnail'])s[k]=score(r.scores[k]);
   s.overall=Math.round(s.utility*.18+s.demonstrability*.17+s.factuality*.16+s.originality*.16+s.narrative*.10+s.visualPlan*.10+s.monetizationSafety*.08+s.thumbnail*.05);
@@ -343,15 +376,10 @@ async function revise(p:Stored<Project>){
   };
   const allowed=new Set(p.selected.sourceKeys);
   const sources=p.research.sources.filter(x=>allowed.has(x.key));
-  const r=await generateJson<any>({
-    system:'Substantially revise a rejected technical tutorial. Fix blockers structurally: more proof, less generic language, better first 30 seconds, stronger narrative progression, and no unsupported claims. DELETE any material claim that is not directly supported by the supplied official evidence; do not soften, speculate, infer product behavior, or invent replacement facts. Prefer fewer fully supported claims over a broader but weaker script. Do not merely paraphrase.',
-    prompt:`Problem: ${JSON.stringify(p.selected)}\nGate: ${JSON.stringify(revisionContext)}\nScript:\n${p.script}\n\nEvidence:\n${sourceText(sources)}\n\nReturn title, description, thumbnailText, thumbnailSubtext, revised 1100-1700 word script, and material claim ledger.`,
-    schema:{...SCRIPT_SCHEMA,properties:{...SCRIPT_SCHEMA.properties,thumbnailText:{type:'string'},thumbnailSubtext:{type:'string'}},required:['title','description','tags','script','claims','thumbnailText','thumbnailSubtext']},
-    maxTokens:8500,temperature:.3,
-  });
-  p.title=clean(r.title).slice(0,100);p.description=String(r.description).trim();p.tags=(r.tags||p.tags||[]).map(clean).slice(0,12);
-  p.thumbnailText=clean(r.thumbnailText).slice(0,28);p.thumbnailSubtext=clean(r.thumbnailSubtext).slice(0,36);
-  p.script=String(r.script).trim();p.claimDrafts=(r.claims as any[]).map(x=>({claim:clean(x.claim),sourceKeys:x.sourceKeys.filter((k:string)=>allowed.has(k))})).filter(x=>x.sourceKeys.length);
+  const result=await generateScriptPackage(p,sources,revisionContext);
+  p.title=clean(result.metadata.title).slice(0,100);p.description=String(result.metadata.description).trim();p.tags=(result.metadata.tags||p.tags||[]).map(clean).slice(0,12);
+  p.thumbnailText=clean(result.metadata.thumbnailText).slice(0,28);p.thumbnailSubtext=clean(result.metadata.thumbnailSubtext).slice(0,36);
+  p.script=result.script;p.claimDrafts=result.claims;
   p.claims=undefined;p.storyboard=undefined;p.gate=undefined;p.revision++;p.stage='fact_review';p.lastError=undefined;await saveProject(p);
 }
 
