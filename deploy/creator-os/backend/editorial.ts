@@ -587,7 +587,7 @@ function vf(scene:ScenePlan,assPath:string){
 }
 async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
   const key=`${p.projectKey}-${String(scene.sceneIndex).padStart(2,'0')}-${Date.now()}`;
-  const audio=join(tmpdir(),`${key}.mp3`),video=join(tmpdir(),`${key}.mp4`),subs=await sceneAss(scene,key);
+  const audio=join(tmpdir(),`${key}.wav`),video=join(tmpdir(),`${key}.mp4`),subs=await sceneAss(scene,key);
   try{
     await synthesizeNeuralSpeech(scene.narration,audio);
     const common=['-map','0:v:0','-map','1:a:0','-r','30','-c:v','libx264','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-af','loudnorm=I=-16:TP=-1.5:LRA=10','-shortest','-movflags','+faststart',video];

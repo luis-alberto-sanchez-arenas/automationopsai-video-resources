@@ -12,8 +12,7 @@
     "express": "^5.1.0",
     "node-cron": "^4.2.1",
     "pg": "^8.16.3",
-    "tsx": "^4.20.5",
-    "node-edge-tts": "^1.2.10"
+    "tsx": "^4.20.5"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
