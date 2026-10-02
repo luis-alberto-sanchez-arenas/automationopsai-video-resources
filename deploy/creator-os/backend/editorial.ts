@@ -1,4 +1,4 @@
-import { readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { copyFile, readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { db, storage, type Stored } from './platform.js';
@@ -258,7 +258,7 @@ async function currentProject(userId:string){
   };
   const active=projects
     .filter(x=>!terminal.has(x.stage))
-    .sort((a,b)=>(rank[b.stage]-rank[a.stage])||b.updatedAt.localeCompare(a.updatedAt));
+    .sort((a,b)=>{\n      const aReviewed=a.editorialOrigin==='chatgpt-membership'?1:0,bReviewed=b.editorialOrigin==='chatgpt-membership'?1:0;\n      return (bReviewed-aReviewed)||(aReviewed?b.createdAt.localeCompare(a.createdAt):0)||(rank[b.stage]-rank[a.stage])||b.updatedAt.localeCompare(a.updatedAt);\n    });
   if(active.length){
     const chosen=active[0];
     // Invariant: only one editorial project may be active. Previous pagination

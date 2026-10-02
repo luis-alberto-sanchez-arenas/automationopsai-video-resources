@@ -1,0 +1,59 @@
+name: Build Kokoro editorial audio
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/creator-os/editorial-packages/inbox/**.json'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: kokoro-editorial-audio
+  cancel-in-progress: false
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install pinned runtime
+        run: pip install --disable-pip-version-check kokoro-onnx==0.6.1 soundfile==0.13.1
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/automationopsai-kokoro
+          key: kokoro-v1.1-int8
+      - name: Verify model assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/automationopsai-kokoro
+          test -f ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx || curl -fL --retry 4 https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.int8.onnx -o ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx
+          test -f ~/.cache/automationopsai-kokoro/voices-v1.0.bin || curl -fL --retry 4 https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin -o ~/.cache/automationopsai-kokoro/voices-v1.0.bin
+          echo 'ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c  /home/runner/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx' | sha256sum -c -
+          echo 'bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d  /home/runner/.cache/automationopsai-kokoro/voices-v1.0.bin' | sha256sum -c -
+      - name: Select changed reviewed package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$(git diff --name-only HEAD^ HEAD -- 'deploy/creator-os/editorial-packages/inbox/*.json' | tail -1)"
+          if [ -z "$package" ]; then package="$(find deploy/creator-os/editorial-packages/inbox -name '*.json' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)"; fi
+          echo "path=$package" >> "$GITHUB_OUTPUT"
+      - name: Synthesize and normalize narration
+        run: python scripts/render_kokoro_assets.py --package "${{ steps.package.outputs.path }}" --model ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx --voices ~/.cache/automationopsai-kokoro/voices-v1.0.bin
+      - name: Commit verified audio assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- deploy/creator-os/editorial-packages/audio; then exit 0; fi
+          git config user.name automationopsai-bot
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add deploy/creator-os/editorial-packages/audio
+          git commit -m 'Add normalized Kokoro narration assets [skip ci]'
+          git push
