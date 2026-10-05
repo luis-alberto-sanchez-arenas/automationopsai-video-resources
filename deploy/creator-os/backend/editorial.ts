@@ -258,7 +258,10 @@ async function currentProject(userId:string){
   };
   const active=projects
     .filter(x=>!terminal.has(x.stage))
-    .sort((a,b)=>{\n      const aReviewed=a.editorialOrigin==='chatgpt-membership'?1:0,bReviewed=b.editorialOrigin==='chatgpt-membership'?1:0;\n      return (bReviewed-aReviewed)||(aReviewed?b.createdAt.localeCompare(a.createdAt):0)||(rank[b.stage]-rank[a.stage])||b.updatedAt.localeCompare(a.updatedAt);\n    });
+    .sort((a,b)=>{
+      const aReviewed=a.editorialOrigin==='chatgpt-membership'?1:0,bReviewed=b.editorialOrigin==='chatgpt-membership'?1:0;
+      return (bReviewed-aReviewed)||(aReviewed?b.createdAt.localeCompare(a.createdAt):0)||(rank[b.stage]-rank[a.stage])||b.updatedAt.localeCompare(a.updatedAt);
+    });
   if(active.length){
     const chosen=active[0];
     // Invariant: only one editorial project may be active. Previous pagination
@@ -589,7 +592,13 @@ async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
   const key=`${p.projectKey}-${String(scene.sceneIndex).padStart(2,'0')}-${Date.now()}`;
   const audio=join(tmpdir(),`${key}.wav`),video=join(tmpdir(),`${key}.mp4`),subs=await sceneAss(scene,key);
   try{
-    await synthesizeNeuralSpeech(scene.narration,audio);
+    if(p.editorialOrigin==='chatgpt-membership'){
+      const preparedAudio=join(process.cwd(),'editorial-packages','audio',p.projectKey,`scene-${String(scene.sceneIndex).padStart(2,'0')}.mp3`);
+      try{await copyFile(preparedAudio,audio);}
+      catch(e){throw new Error(`Prepared narration asset pending: ${preparedAudio}: ${e instanceof Error?e.message:String(e)}`);}
+    }else{
+      await synthesizeNeuralSpeech(scene.narration,audio);
+    }
     const common=['-map','0:v:0','-map','1:a:0','-r','30','-c:v','libx264','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-af','loudnorm=I=-16:TP=-1.5:LRA=10','-shortest','-movflags','+faststart',video];
     if(scene.visualType==='broll'){
       const source=BROLL[scene.sceneIndex%BROLL.length];
@@ -616,7 +625,9 @@ async function advanceRender(p:Stored<Project>){
     const {id,...record}=candidate;record.status='rendered';record.segmentStoragePath=r.path;record.bytes=r.bytes;record.lastError=undefined;record.updatedAt=now();
     await db.update(SCENE_TABLE,[{id,record}]);
   }catch(e){
-    const {id,...record}=candidate;record.status='failed';record.retryCount++;record.lastError=(e instanceof Error?e.message:String(e)).slice(0,1000);record.updatedAt=now();
+    const message=(e instanceof Error?e.message:String(e)).slice(0,1000);
+    if(message.startsWith('Prepared narration asset pending'))throw e;
+    const {id,...record}=candidate;record.status='failed';record.retryCount++;record.lastError=message;record.updatedAt=now();
     await db.update(SCENE_TABLE,[{id,record}]);throw e;
   }
 }
