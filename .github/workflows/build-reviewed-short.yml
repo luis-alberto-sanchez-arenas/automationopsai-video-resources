@@ -1,0 +1,98 @@
+name: Build reviewed AI Short
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/creator-os/reviewed-masters/inbox/**.json'
+permissions:
+  contents: write
+concurrency:
+  group: reviewed-ai-short
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip install --disable-pip-version-check kokoro-onnx==0.6.1 soundfile==0.13.1 numpy==2.2.6 pillow==11.3.0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/automationopsai-kokoro
+          key: kokoro-v1.1-int8
+      - name: Verify model assets
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/automationopsai-kokoro
+          test -f ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx || curl -fL --retry 4 https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.int8.onnx -o ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx
+          test -f ~/.cache/automationopsai-kokoro/voices-v1.0.bin || curl -fL --retry 4 https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin -o ~/.cache/automationopsai-kokoro/voices-v1.0.bin
+          echo 'ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c  /home/runner/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx' | sha256sum -c -
+          echo 'bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d  /home/runner/.cache/automationopsai-kokoro/voices-v1.0.bin' | sha256sum -c -
+      - name: Select specification
+        id: spec
+        run: |
+          set -euo pipefail
+          spec="$(git diff --name-only HEAD^ HEAD -- 'deploy/creator-os/reviewed-masters/inbox/*.json' | tail -1)"
+          test -n "$spec"
+          echo "path=$spec" >> "$GITHUB_OUTPUT"
+      - name: Render narration-first Short
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"
+          renderer="$(jq -r .renderer "$spec")"
+          key="$(jq -r .key "$spec")"
+          mkdir -p output
+          python "$renderer" --model ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx --voices ~/.cache/automationopsai-kokoro/voices-v1.0.bin --output output
+          bundle="deploy/creator-os/reviewed-masters/bundled/$key"
+          mkdir -p "$bundle"
+          cp "output/$(jq -r .outputVideo "$spec")" "$bundle/video.mp4"
+          cp output/thumbnail.jpg "$bundle/thumbnail.jpg"
+          cp output/timeline.json "$bundle/timeline.json"
+          jq --arg video video.mp4 --arg thumbnail thumbnail.jpg '. + {video:$video,thumbnail:$thumbnail}' "$spec" > "$bundle/manifest.json"
+      - name: Validate technical quality
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"
+          key="$(jq -r .key "$spec")"
+          video="deploy/creator-os/reviewed-masters/bundled/$key/video.mp4"
+          read width height fps duration < <(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate:format=duration -of json "$video" | python -c "import json,sys; d=json.load(sys.stdin); s=d['streams'][0]; n,m=map(int,s['r_frame_rate'].split('/')); print(s['width'],s['height'],n/m,float(d['format']['duration']))")
+          test "$width" -eq 1080
+          test "$height" -eq 1920
+          python - "$fps" "$duration" <<'PY'
+          import sys
+          fps,duration=map(float,sys.argv[1:])
+          assert fps >= 29.9, fps
+          assert 35 <= duration <= 90, duration
+          PY
+          ffmpeg -hide_banner -i "$video" -af ebur128=peak=true -f null - 2> loudness.log
+          python - <<'PY'
+          import re
+          text=open('loudness.log').read()
+          loud=[float(x) for x in re.findall(r'I:\s*(-?\d+(?:\.\d+)?) LUFS',text)]
+          peak=[float(x) for x in re.findall(r'Peak:\s*(-?\d+(?:\.\d+)?) dBFS',text)]
+          assert loud and -17.5 <= loud[-1] <= -14.5, loud[-3:]
+          assert peak and peak[-1] <= -1.0, peak[-3:]
+          print({'lufs':loud[-1],'peak':peak[-1]})
+          PY
+          ffmpeg -hide_banner -i "$video" -vf blackdetect=d=1.0:pix_th=0.10 -af silencedetect=n=-50dB:d=2.0 -f null - 2> gaps.log
+          ! grep -q 'black_duration' gaps.log
+          ! grep -q 'silence_duration' gaps.log
+      - name: Commit verified Short
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"
+          key="$(jq -r .key "$spec")"
+          git config user.name automationopsai-bot
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "deploy/creator-os/reviewed-masters/bundled/$key"
+          git commit -m "Add verified public Short $key [skip ci]"
+          git push

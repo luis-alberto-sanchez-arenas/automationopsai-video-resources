@@ -1,0 +1,16 @@
+{
+  "key": "ai-accessibility-evidence-gate-20261005",
+  "renderer": "renderers/2026-09-26-agentic-accessibility-short.py",
+  "outputVideo": "ai-accessibility-audit.mp4",
+  "title": "0 Accessibility Bugs? Your AI UI Can Still Fail #Shorts",
+  "description": "A real, repeatable AI-assisted accessibility gate: automated checks, keyboard-path replay, visible focus verification, and manual review. The demonstration uses an original procedural interface and synthetic Kokoro narration. Technical basis: W3C explains that no tool alone can determine whether a site is accessible: https://www.w3.org/WAI/test-evaluate/tools/selecting/",
+  "tags": [
+    "AI",
+    "AI design",
+    "accessibility",
+    "software testing",
+    "web development",
+    "Shorts"
+  ],
+  "transcript": "Your AI generated interface can pass unit tests and still lock out keyboard users. Audit the behavior, not the screenshot. Run the automated scan first. It finds four deterministic violations: contrast, missing names, duplicate labels, and no main landmark. Fix them, rerun the same command, and automated violations drop from four to zero. But zero is not compliance. W three C says no tool alone can determine whether a site is accessible. Now replay the keyboard path. A sticky footer hides checkout, and only three of six focus stops remain visible. Add scroll padding and a strong focus ring. The same replay now exposes all six stops, including checkout. Gate the pull request on both results, then keep manual and assistive technology review. Ship evidence, not an accessibility score."
+}

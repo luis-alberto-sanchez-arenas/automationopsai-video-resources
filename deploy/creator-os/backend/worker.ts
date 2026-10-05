@@ -1,7 +1,9 @@
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import cron from 'node-cron';
-import { db, initPlatform, withLock } from './platform.js';
+import { db, initPlatform, storage, withLock } from './platform.js';
 import { advanceChatGptEditorial, advanceEditorial, importChatGptEditorialPackages, markQueued } from './editorial.js';
-import { demandContext, ensurePublishJob, processOnePublishStep, promoteApprovedReviewedJobs, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
+import { demandContext, ensurePublishJob, ensureReviewedPublishJob, processOnePublishStep, promoteApprovedReviewedJobs, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -24,7 +26,40 @@ async function saveState(value:Awaited<ReturnType<typeof state>>){
   const {id,...record}=value;record.updatedAt=new Date().toISOString();await db.update(SCHEDULER_TABLE,[{id,record}]);
 }
 
+async function importBundledReviewedMasters(){
+  const root=join(process.cwd(),'reviewed-masters','bundled');
+  let directories:string[]=[];
+  try{directories=await readdir(root);}catch{return [];}
+  const imported:string[]=[];
+  for(const directory of directories){
+    try{
+      const base=join(root,directory);
+      const manifest=JSON.parse(await readFile(join(base,'manifest.json'),'utf8')) as {
+        key:string;title:string;description:string;tags:string[];transcript:string;video:string;thumbnail:string;
+      };
+      const video=await readFile(join(base,manifest.video));
+      const thumb=await readFile(join(base,manifest.thumbnail));
+      const videoPath=`reviewed-masters/${manifest.key}/video.mp4`;
+      const thumbPath=`reviewed-masters/${manifest.key}/thumbnail.jpg`;
+      await storage.write([
+        {path:videoPath,content:video,contentType:'video/mp4'},
+        {path:thumbPath,content:thumb,contentType:'image/jpeg'},
+      ]);
+      await ensureReviewedPublishJob(USER_ID,{
+        key:manifest.key,title:manifest.title,description:manifest.description,tags:manifest.tags,
+        transcript:manifest.transcript,preparedStoragePath:videoPath,thumbnailStoragePath:thumbPath,
+      });
+      imported.push(manifest.key);
+    }catch(error){
+      console.error(`worker reviewed-master import ${directory}:`,error);
+    }
+  }
+  return imported;
+}
+
 async function editorialCycle(){
+  const importedMasters=await importBundledReviewedMasters();
+  if(importedMasters.length)console.log(`worker: reviewed-masters=${JSON.stringify(importedMasters)}`);
   const scheduler=await state();
   const packageMode=process.env.CHATGPT_EDITORIAL_PACKAGES_ENABLED!=='false';
   const packageImport=packageMode?await importChatGptEditorialPackages(USER_ID):{imported:[],skipped:[],failed:[]};
