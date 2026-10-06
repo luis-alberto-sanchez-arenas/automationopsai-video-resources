@@ -41,10 +41,11 @@ async function importBundledReviewedMasters(){
       const thumb=await readFile(join(base,manifest.thumbnail));
       const videoPath=`reviewed-masters/${manifest.key}/video.mp4`;
       const thumbPath=`reviewed-masters/${manifest.key}/thumbnail.jpg`;
-      await storage.write([
-        {path:videoPath,content:video,contentType:'video/mp4'},
-        {path:thumbPath,content:thumb,contentType:'image/jpeg'},
-      ]);
+      const [storedVideo,storedThumb]=await Promise.all([storage.info(videoPath),storage.info(thumbPath)]);
+      const missingAssets=[];
+      if(!storedVideo)missingAssets.push({path:videoPath,content:video,contentType:'video/mp4'});
+      if(!storedThumb)missingAssets.push({path:thumbPath,content:thumb,contentType:'image/jpeg'});
+      if(missingAssets.length)await storage.write(missingAssets);
       await ensureReviewedPublishJob(USER_ID,{
         key:manifest.key,title:manifest.title,description:manifest.description,tags:manifest.tags,
         transcript:manifest.transcript,preparedStoragePath:videoPath,thumbnailStoragePath:thumbPath,
