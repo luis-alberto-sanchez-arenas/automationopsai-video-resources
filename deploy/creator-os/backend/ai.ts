@@ -229,7 +229,7 @@ export async function generateJson<T>(options:GenerateOptions):Promise<T> {
   for(let attempt=0;attempt<2;attempt++){
     const strictSystem=attempt===0?options.system:`${options.system}\nCRITICAL: Return ONLY one valid JSON value matching the schema. No markdown, headings, prose, comments or code fences.`;
     const strictPrompt=attempt===0?options.prompt:`${options.prompt}\n\nReturn JSON only. Do not explain the answer.`;
-    const text=await generateText({...options,system:strictSystem,prompt:strictPrompt,temperature:attempt===0?options.temperature:0});
+    const text=await generateText({...options,system:strictSystem,prompt:strictPrompt,temperature:attempt===0?options.temperature:0,maxTokens:attempt===0?options.maxTokens:Math.max(options.maxTokens||0,6000)});
     last=text;
     try{return JSON.parse(parseJsonText(text)) as T;}catch{}
   }
