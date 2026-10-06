@@ -593,7 +593,8 @@ async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
   const audio=join(tmpdir(),`${key}.wav`),video=join(tmpdir(),`${key}.mp4`),subs=await sceneAss(scene,key);
   try{
     if(p.editorialOrigin==='chatgpt-membership'){
-      const preparedAudio=join(process.cwd(),'editorial-packages','audio',p.projectKey,`scene-${String(scene.sceneIndex).padStart(2,'0')}.mp3`);
+      const packageKey=p.projectKey.replace(/^chatgpt-/,'');
+      const preparedAudio=join(process.cwd(),'editorial-packages','audio',packageKey,`scene-${String(scene.sceneIndex).padStart(2,'0')}.mp3`);
       try{await copyFile(preparedAudio,audio);}
       catch(e){throw new Error(`Prepared narration asset pending: ${preparedAudio}: ${e instanceof Error?e.message:String(e)}`);}
     }else{
