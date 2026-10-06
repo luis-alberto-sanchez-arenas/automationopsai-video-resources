@@ -197,8 +197,7 @@ export async function demandContext(userId:string):Promise<EditorialContext>{
   if(!await tokenFor(userId))return {demandSignals:[],recentVideos,blockedTopics:[]};
   let access:string;
   try{access=await accessToken(userId);}
-  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);  const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);  const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);  const queries=[...new Set([
-    ...winners.map(x=>searchSeed(x.title)).filter(Boolean),
+  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);  const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);  const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);  const queries=[...new Set([    ...winners.map(x=>searchSeed(x.title)).filter(Boolean),
     'AI agent workflow reliability','MCP security tutorial','AI software development workflow',
     'AI design accessibility workflow','business workflow automation',
   ])].slice(0,7);
@@ -305,6 +304,7 @@ export async function releaseUploadedAssets(userId:string){
     await storage.delete(paths);
     job.assetsReleasedAt=new Date().toISOString();await saveJob(job);released.push(job.automationKey);
   }
+  if(released.length)await storage.vacuum();
   return released;
 }
 
@@ -397,8 +397,7 @@ async function querySession(job:PublishJob,access:string){
 async function uploadChunk(job:PublishJob,access:string,sourceUrl:string){
   if(!job.uploadSessionUrl||!job.totalBytes)throw new Error('Incomplete upload session');
   const start=job.uploadedBytes||0,end=Math.min(start+CHUNK_SIZE-1,job.totalBytes-1);
-  const source=await fetch(sourceUrl,{headers:{range:`bytes=${start}-${end}`},redirect:'follow'});
-  if(source.status!==206&&!(source.status===200&&start===0&&job.totalBytes<=CHUNK_SIZE))throw new Error(`Source range failed (${source.status})`);  const bytes=Buffer.from(await source.arrayBuffer()),actualEnd=start+bytes.length-1;
+  const source=await fetch(sourceUrl,{headers:{range:`bytes=${start}-${end}`},redirect:'follow'});  if(source.status!==206&&!(source.status===200&&start===0&&job.totalBytes<=CHUNK_SIZE))throw new Error(`Source range failed (${source.status})`);  const bytes=Buffer.from(await source.arrayBuffer()),actualEnd=start+bytes.length-1;
   const response=await fetch(job.uploadSessionUrl,{method:'PUT',headers:{    authorization:`Bearer ${access}`,'content-type':'video/mp4','content-length':String(bytes.length),
     'content-range':`bytes ${start}-${actualEnd}/${job.totalBytes}`  },body:bytes});
   if(response.status===308){const m=response.headers.get('range')?.match(/bytes=0-(\d+)/);return {done:false,uploaded:m?Number(m[1])+1:actualEnd+1};}
