@@ -197,8 +197,7 @@ function compactSourceText(sources:Source[],charsPerSource=1100){
 
 async function listProjects(userId:string){
   // db.list orders by physical created_at ASC before LIMIT, so a small limit
-  // eventually hides new projects completely. Load the bounded full project
-  // history and sort in application code so the newest active record is visible.
+  // eventually hides new projects completely. Load the bounded full project  // history and sort in application code so the newest active record is visible.
   const {items}=await db.list<Project>(PROJECT_TABLE,{filter:{userId},limit:5000});
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
@@ -397,8 +396,7 @@ async function writeScript(p:Stored<Project>){
   p.script=result.script;p.claimDrafts=result.claims;p.stage='fact_review';p.lastError=undefined;await saveProject(p);
 }
 
-// The fact gate deliberately returns only a compact claim ledger. Asking a
-// free-tier model to echo a 1,000+ word script inside JSON made otherwise valid
+// The fact gate deliberately returns only a compact claim ledger. Asking a// free-tier model to echo a 1,000+ word script inside JSON made otherwise valid
 // responses hit their output limit and left the pipeline stuck on malformed
 // JSON. The script is allowed through only when every material claim passes;
 // any unsupported claim sends the project back to revision.
@@ -597,8 +595,7 @@ async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
       const preparedAudio=join(process.cwd(),'editorial-packages','audio',packageKey,`scene-${String(scene.sceneIndex).padStart(2,'0')}.mp3`);
       try{await copyFile(preparedAudio,audio);}
       catch(e){throw new Error(`Prepared narration asset pending: ${preparedAudio}: ${e instanceof Error?e.message:String(e)}`);}
-    }else{
-      await synthesizeNeuralSpeech(scene.narration,audio);
+    }else{      await synthesizeNeuralSpeech(scene.narration,audio);
     }
     const common=['-map','0:v:0','-map','1:a:0','-r','30','-c:v','libx264','-preset','veryfast','-threads','2','-x264-params','threads=2:lookahead_threads=1','-crf','22','-pix_fmt','yuv420p','-c:a','aac','-ar','48000','-b:a','192k','-af','loudnorm=I=-16:TP=-1.5:LRA=10','-shortest','-movflags','+faststart',video];
     if(scene.visualType==='broll'){
@@ -625,6 +622,9 @@ async function advanceRender(p:Stored<Project>){
     const r=await renderScene(p,candidate);
     const {id,...record}=candidate;record.status='rendered';record.segmentStoragePath=r.path;record.bytes=r.bytes;record.lastError=undefined;record.updatedAt=now();
     await db.update(SCENE_TABLE,[{id,record}]);
+    // A successfully persisted scene proves that any project-level media error is stale.
+    // Clear it immediately so the dashboard reports current state, not a recovered failure.
+    if(p.lastError){p.lastError=undefined;await saveProject(p);}
   }catch(e){
     const message=(e instanceof Error?e.message:String(e)).slice(0,1000);
     if(message.startsWith('Prepared narration asset pending'))throw e;
