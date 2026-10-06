@@ -21,7 +21,7 @@ export type PublishJob={
   status:'pending'|'uploading'|'published'|'failed';
   totalBytes?:number;uploadedBytes:number;uploadSessionUrl?:string;youtubeVideoId?:string;youtubeUrl?:string;
   thumbnailStatus?:'pending'|'set'|'failed';lastError?:string;retryCount:number;createdAt:string;updatedAt:string;
-  publishAt?:string;
+  publishAt?:string;assetsReleasedAt?:string;
 };
 export type ReviewedPublishSpec={
   key:string;title:string;description:string;tags:string[];transcript:string;
@@ -197,8 +197,7 @@ export async function demandContext(userId:string):Promise<EditorialContext>{
   if(!await tokenFor(userId))return {demandSignals:[],recentVideos,blockedTopics:[]};
   let access:string;
   try{access=await accessToken(userId);}
-  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}
-  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);
+  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);
   const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);
   const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);
   const queries=[...new Set([
@@ -296,6 +295,16 @@ export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublis
 export async function listJobs(userId:string){
   const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:50});
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function releaseUploadedAssets(userId:string){
+  const jobs=(await listJobs(userId)).filter(job=>Boolean(job.youtubeVideoId)&&job.thumbnailStatus==='set'&&!job.assetsReleasedAt);
+  const released:string[]=[];
+  for(const job of jobs){
+    await storage.delete([job.preparedStoragePath,job.thumbnailStoragePath]);
+    job.assetsReleasedAt=new Date().toISOString();await saveJob(job);released.push(job.automationKey);
+  }
+  return released;
 }
 
 export async function repairPublishedDiscoveryMetadata(userId:string){
@@ -397,8 +406,7 @@ async function uploadChunk(job:PublishJob,access:string,sourceUrl:string){
   if(response.status===308){const m=response.headers.get('range')?.match(/bytes=0-(\d+)/);return {done:false,uploaded:m?Number(m[1])+1:actualEnd+1};}
   if(response.ok){const data=await response.json() as any;if(!data.id)throw new Error('Upload completed without video id');return {done:true,uploaded:job.totalBytes,videoId:data.id as string};}
   if([404,410].includes(response.status))throw new Error('UPLOAD_SESSION_EXPIRED');
-  throw new Error(`YouTube chunk failed (${response.status}): ${(await response.text()).slice(0,500)}`);
-}
+  throw new Error(`YouTube chunk failed (${response.status}): ${(await response.text()).slice(0,500)}`);}
 async function videoStatus(videoId:string,access:string){
   const response=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=id,status&id=${encodeURIComponent(videoId)}`,{headers:{authorization:`Bearer ${access}`}});
   const data=await response.json() as any;if(!response.ok)throw new Error(`Video status failed (${response.status})`);
