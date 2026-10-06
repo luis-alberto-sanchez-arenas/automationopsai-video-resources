@@ -600,7 +600,7 @@ async function renderScene(p:Stored<Project>,scene:Stored<SceneRecord>){
     }else{
       await synthesizeNeuralSpeech(scene.narration,audio);
     }
-    const common=['-map','0:v:0','-map','1:a:0','-r','30','-c:v','libx264','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-af','loudnorm=I=-16:TP=-1.5:LRA=10','-shortest','-movflags','+faststart',video];
+    const common=['-map','0:v:0','-map','1:a:0','-r','30','-c:v','libx264','-preset','veryfast','-threads','2','-x264-params','threads=2:lookahead_threads=1','-crf','22','-pix_fmt','yuv420p','-c:a','aac','-ar','48000','-b:a','192k','-af','loudnorm=I=-16:TP=-1.5:LRA=10','-shortest','-movflags','+faststart',video];
     if(scene.visualType==='broll'){
       const source=BROLL[scene.sceneIndex%BROLL.length];
       try{

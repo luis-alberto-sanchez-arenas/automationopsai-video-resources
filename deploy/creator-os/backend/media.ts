@@ -6,10 +6,19 @@ import { createInterface } from 'node:readline';
 export async function runFfmpeg(args:string[]) {
   await new Promise<void>((resolve,reject)=>{
     const child=spawn(process.env.FFMPEG_PATH || 'ffmpeg',args,{stdio:['ignore','ignore','pipe']});
-    let stderr='';
+    let stderr='',settled=false;
+    const timeoutMs=Number(process.env.FFMPEG_TIMEOUT_MS || '600000');
+    const timer=setTimeout(()=>{
+      if(settled)return;
+      settled=true;child.kill('SIGKILL');
+      reject(new Error(`FFmpeg timeout after ${timeoutMs}ms: ${stderr.slice(-1200)}`));
+    },timeoutMs);
     child.stderr.on('data',chunk=>stderr=(stderr+String(chunk)).slice(-12000));
-    child.on('error',reject);
-    child.on('close',code=>code===0?resolve():reject(new Error(`FFmpeg failed (${code}): ${stderr.slice(-1200)}`)));
+    child.on('error',error=>{if(settled)return;settled=true;clearTimeout(timer);reject(error);});
+    child.on('close',(code,signal)=>{
+      if(settled)return;settled=true;clearTimeout(timer);
+      code===0?resolve():reject(new Error(`FFmpeg failed (code=${code}, signal=${signal||'none'}): ${stderr.slice(-1200)}`));
+    });
   });
 }
 
