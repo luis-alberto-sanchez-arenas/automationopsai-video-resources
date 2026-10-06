@@ -155,6 +155,10 @@ export const storage = {
   async delete(paths: string[]) {
     if (!paths.length) return;
     await pool.query('DELETE FROM app_blobs WHERE path=ANY($1::text[])', [paths]);
+  },
+
+  async vacuum() {
+    await pool.query('VACUUM (ANALYZE) app_blobs');
   }
 };
 
