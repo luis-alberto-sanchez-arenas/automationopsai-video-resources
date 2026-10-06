@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import cron from 'node-cron';
 import { db, initPlatform, storage, withLock } from './platform.js';
 import { advanceChatGptEditorial, advanceEditorial, importChatGptEditorialPackages, markQueued } from './editorial.js';
-import { demandContext, ensurePublishJob, ensureReviewedPublishJob, processOnePublishStep, promoteApprovedReviewedJobs, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
+import { demandContext, ensurePublishJob, ensureReviewedPublishJob, processOnePublishStep, promoteApprovedReviewedJobs, releaseUploadedAssets, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -137,6 +137,8 @@ async function publishCycle(){
   console.log(`worker: tiktok=${JSON.stringify(tiktok.status==='fulfilled'?tiktok.value:{status:'failed',error:String(tiktok.reason)})}`);
   const promoted=await promoteApprovedReviewedJobs(USER_ID);
   if(promoted.length)console.log(`worker: promoted=${JSON.stringify(promoted)}`);
+  const released=await releaseUploadedAssets(USER_ID);
+  if(released.length)console.log(`worker: released-upload-assets=${JSON.stringify(released)}`);
   const scheduler=await state();scheduler.lastPublisherAt=new Date().toISOString();
   scheduler.lastPublisherResult=JSON.stringify(youtube.status==='fulfilled'?youtube.value:{status:'failed',error:String(youtube.reason)}).slice(0,700);
   await saveState(scheduler);
