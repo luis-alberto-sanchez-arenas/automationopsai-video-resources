@@ -197,8 +197,7 @@ export async function demandContext(userId:string):Promise<EditorialContext>{
   if(!await tokenFor(userId))return {demandSignals:[],recentVideos,blockedTopics:[]};
   let access:string;
   try{access=await accessToken(userId);}
-  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);  const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);
-  const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);
+  catch{return {demandSignals:[],recentVideos,blockedTopics:[]};}  const performance=await managedVideoMetrics(userId,access).catch(()=>[]);  const stale=performance.filter(x=>x.privacyStatus==='public'&&x.views===0&&x.ageDays>=7);  const winners=performance.filter(x=>x.views>0).sort((a,b)=>b.viewsPerDay-a.viewsPerDay||b.views-a.views).slice(0,3);
   const queries=[...new Set([
     ...winners.map(x=>searchSeed(x.title)).filter(Boolean),
     'AI agent workflow reliability','MCP security tutorial','AI software development workflow',
@@ -297,7 +296,7 @@ export async function listJobs(userId:string){
 }
 
 export async function releaseUploadedAssets(userId:string){
-  const jobs=(await listJobs(userId)).filter(job=>!job.automationKey.startsWith('reviewed-')&&Boolean(job.youtubeVideoId)&&job.thumbnailStatus==='set'&&!job.assetsReleasedAt);
+  const jobs=(await listJobs(userId)).filter(job=>!job.automationKey.startsWith('reviewed-')&&job.status==='published'&&job.privacyStatus==='public'&&Boolean(job.youtubeVideoId)&&job.thumbnailStatus==='set'&&!job.assetsReleasedAt);
   const released:string[]=[];
   for(const job of jobs){
     await storage.delete([job.preparedStoragePath,job.thumbnailStoragePath]);
@@ -397,8 +396,7 @@ async function uploadChunk(job:PublishJob,access:string,sourceUrl:string){
   const start=job.uploadedBytes||0,end=Math.min(start+CHUNK_SIZE-1,job.totalBytes-1);
   const source=await fetch(sourceUrl,{headers:{range:`bytes=${start}-${end}`},redirect:'follow'});
   if(source.status!==206&&!(source.status===200&&start===0&&job.totalBytes<=CHUNK_SIZE))throw new Error(`Source range failed (${source.status})`);  const bytes=Buffer.from(await source.arrayBuffer()),actualEnd=start+bytes.length-1;
-  const response=await fetch(job.uploadSessionUrl,{method:'PUT',headers:{
-    authorization:`Bearer ${access}`,'content-type':'video/mp4','content-length':String(bytes.length),
+  const response=await fetch(job.uploadSessionUrl,{method:'PUT',headers:{    authorization:`Bearer ${access}`,'content-type':'video/mp4','content-length':String(bytes.length),
     'content-range':`bytes ${start}-${actualEnd}/${job.totalBytes}`
   },body:bytes});
   if(response.status===308){const m=response.headers.get('range')?.match(/bytes=0-(\d+)/);return {done:false,uploaded:m?Number(m[1])+1:actualEnd+1};}
