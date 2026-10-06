@@ -88,7 +88,7 @@ async function editorialCycle(){
     const hardBlock=/\b402\b|insufficient balance|suspended due to insufficient|\b429\b|RESOURCE_EXHAUSTED/i.test(previous);
     const transient=/\b503\b|UNAVAILABLE|high demand|temporar/i.test(previous);
     const inheritedLongTransient=transient&&!hardBlock&&scheduledDelay>90*60_000;
-    const fixedStateError=/Revision package missing/i.test(previous);
+    const fixedStateError=/Revision package missing|Prepared narration asset pending|FFmpeg failed/i.test(previous);
     if(inheritedLongTransient||fixedStateError){
       console.log(`worker: clearing recoverable editorial backoff scheduled for ${scheduler.nextEditorialAt}`);
       scheduler.nextEditorialAt=undefined;
