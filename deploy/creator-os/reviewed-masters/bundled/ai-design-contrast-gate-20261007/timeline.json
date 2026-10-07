@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "index": 0,
+      "text": "AI can generate a polished interface in seconds. But did anyone test whether users can read it?",
+      "start": 0.0,
+      "end": 5.8213
+    },
+    {
+      "index": 1,
+      "text": "This generated button uses gray text on a slate background. The contrast test returns two point nine six to one.",
+      "start": 5.9513,
+      "end": 13.4013
+    },
+    {
+      "index": 2,
+      "text": "WCAG double A needs four point five to one for normal text. Pretty is not the same as accessible.",
+      "start": 13.5313,
+      "end": 20.1166
+    },
+    {
+      "index": 3,
+      "text": "Keep the layout. Replace only the text token, then run the exact same deterministic test again.",
+      "start": 20.2466,
+      "end": 26.2346
+    },
+    {
+      "index": 4,
+      "text": "Now the ratio is seven point two four to one. The component passes without asking AI to redesign the page.",
+      "start": 26.3646,
+      "end": 33.6113
+    },
+    {
+      "index": 5,
+      "text": "The useful workflow is generate, measure, repair, and regression test. Not prompt, screenshot, and ship.",
+      "start": 33.7413,
+      "end": 40.176
+    },
+    {
+      "index": 6,
+      "text": "Put contrast, focus states, responsive overflow, and design token drift in continuous integration.",
+      "start": 40.306,
+      "end": 46.9226
+    }
+  ]
+}
