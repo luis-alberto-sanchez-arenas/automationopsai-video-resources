@@ -1,0 +1,18 @@
+{
+  "key": "ai-design-contrast-gate-20261007",
+  "renderer": "renderers/2026-09-23-ai-design-contrast-short.py",
+  "outputVideo": "ai-design-contrast.mp4",
+  "title": "AI-Generated UI? Run This Contrast Test Before Shipping #Shorts",
+  "description": "A real AI-assisted design quality gate: measure an unreadable button at 2.96:1, change one design token, rerun the same deterministic test, and verify 7.24:1 without redesigning the interface. The visuals are original and procedural; narration is synthetic Kokoro speech. Technical reference: WCAG 2.2 contrast minimum, https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html\n\nReproducible resources: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources",
+  "tags": [
+    "AI design",
+    "accessibility",
+    "WCAG",
+    "web development",
+    "UI testing",
+    "design systems",
+    "software testing",
+    "Shorts"
+  ],
+  "transcript": "AI can generate a polished interface in seconds. But did anyone test whether users can read it? This generated button uses gray text on a slate background. The contrast test returns two point nine six to one. WCAG double A needs four point five to one for normal text. Pretty is not the same as accessible. Keep the layout. Replace only the text token, then run the exact same deterministic test again. Now the ratio is seven point two four to one. The component passes without asking AI to redesign the page. The useful workflow is generate, measure, repair, and regression test. Not prompt, screenshot, and ship. Put contrast, focus states, responsive overflow, and design token drift in continuous integration."
+}
