@@ -256,7 +256,7 @@ function optimizeMetadata(title:string,description:string,inputTags:string[],sho
 
 export async function ensurePublishJob(userId:string,spec?:PublishSpec){
   if(!spec)return;
-  const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:50});
+  const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:5000});
   if(items.some(x=>x.automationKey===spec.automationKey))return;
   const t=new Date().toISOString();
   const publishAt=nextProductionSlot(items);
@@ -271,7 +271,7 @@ export async function ensurePublishJob(userId:string,spec?:PublishSpec){
 }
 export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublishSpec){
   const automationKey=`reviewed-${spec.key}`;
-  const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:100});
+  const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:5000});
   const existing=items.find(x=>x.automationKey===automationKey);
   if(existing)return existing;
   const [video,thumb]=await Promise.all([storage.info(spec.preparedStoragePath),storage.info(spec.thumbnailStoragePath)]);
@@ -288,7 +288,7 @@ export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublis
   const [id]=await db.add(JOB_TABLE,[record]);return {...record,id};
 }
 export async function listJobs(userId:string){
-  const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:50});
+  const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:5000});
   return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
 
