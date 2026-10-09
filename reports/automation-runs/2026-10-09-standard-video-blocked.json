@@ -1,0 +1,106 @@
+{
+  "runDate": "2026-10-09",
+  "channel": {
+    "id": "UC0DxP5lydmEtJwI3HLnO1LA",
+    "handle": "@AutomationOpsAI"
+  },
+  "outcome": "blocked-before-render",
+  "publishDecision": "do-not-publish",
+  "analytics": {
+    "window": "last_28_days_including_today",
+    "fetchedVia": "authorized YouTube Analytics connector (Windsor account 37893)",
+    "publicVideosAnalyzed": 24,
+    "top20PercentLearning": {
+      "problem": "Concrete AI-agent or coding-agent security failures",
+      "hook": "Show the attack/failure first",
+      "demonstration": "Run the same action before and after a deterministic policy gate",
+      "pacing": "Frequent causal state changes ending in a visible PASS/BLOCK decision"
+    },
+    "leaders": [
+      {
+        "videoId": "ZNPd4678DVg",
+        "title": "AI Agent Sandbox V2: Stop Production Secret Leaks #Shorts",
+        "views": 631,
+        "viewsPerDay": 38.26,
+        "likes": 7,
+        "comments": 0,
+        "averageViewPercentage": 39.12
+      },
+      {
+        "videoId": "yxF9-kbaau0",
+        "title": "AI Coding Patch Gate: Tests Before Merge #Shorts",
+        "views": 98,
+        "viewsPerDay": 5.84,
+        "likes": 0,
+        "comments": 0,
+        "averageViewPercentage": 31.08
+      },
+      {
+        "videoId": "WGkrLZYCRh4",
+        "title": "AI Coding Agent Sandbox: Live Attack vs Containment #Shorts",
+        "views": 64,
+        "viewsPerDay": 3.56,
+        "likes": 1,
+        "comments": 0,
+        "averageViewPercentage": 63.36
+      }
+    ],
+    "staleZeroViewExclusions": [],
+    "editorialWarning": "The latest long-form n8n security video has 3.70% average view percentage; do not repeat n8n hardening/logging until a materially different demonstrated outcome is justified."
+  },
+  "audienceCommitments": {
+    "detectedComments": 2,
+    "pendingPart2Promises": [],
+    "fulfilled": [
+      {
+        "sourceVideoId": "RiCstBIrZl4",
+        "followUpVideoId": "Omc3b7G6Sc4",
+        "trigger": "workflow"
+      }
+    ]
+  },
+  "recommendedGap": {
+    "searchQuery": "AI coding agent dependency review",
+    "workingProblem": "An AI coding agent can add a vulnerable or unapproved package while tests still pass.",
+    "proofPlan": "Execute a clean pull request, inject a risky dependency, show tests passing, run dependency review, block the merge, repair the dependency and rerun to PASS.",
+    "sources": [
+      "https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review",
+      "https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/customize-dependency-review-action",
+      "https://docs.npmjs.com/generating-provenance-statements/",
+      "https://arxiv.org/abs/2601.00205"
+    ],
+    "status": "candidate-only; not approved for render until narration, originality manifest and complete QA evidence exist"
+  },
+  "blockers": [
+    {
+      "code": "youtube-reauthorization-required",
+      "evidence": "Creator OS /api/public/analytics-status returned ok=false and worker reported youtube status not-connected continuously through 2026-10-09T17:05:01Z.",
+      "blockingStage": "upload and public verification"
+    },
+    {
+      "code": "no-current-master",
+      "evidence": "Creator OS public status reported stage=revision, renderedScenes=0 for Secure n8n AI Agent Logs.",
+      "blockingStage": "audiovisual QA"
+    },
+    {
+      "code": "free-ai-providers-unavailable",
+      "evidence": "OpenRouter free model returned 404 unavailable; Gemini free models returned 429 RESOURCE_EXHAUSTED; Groq remained in cooldown.",
+      "blockingStage": "internal editorial revision"
+    },
+    {
+      "code": "originality-gate-not-executed",
+      "evidence": "No current originality-manifest.json or rendered package exists; required command therefore cannot pass.",
+      "blockingStage": "render authorization"
+    }
+  ],
+  "controlsNotRun": [
+    "originality_gate.py",
+    "audio LUFS and true-peak measurement",
+    "black-frame and long-silence scan",
+    "safe-zone and mark synchronization review",
+    "contact-sheet and before/after-mark frame review",
+    "thumbnail-to-title-to-content promise match",
+    "privacyStatus=public and public URL verification"
+  ],
+  "rights": "No media asset was generated or published in this run."
+}
