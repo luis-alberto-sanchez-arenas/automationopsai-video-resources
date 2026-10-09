@@ -160,7 +160,8 @@ cron.schedule('* * * * *',()=>void guarded('editorial',editorialCycle),{timezone
 cron.schedule('* * * * *',()=>void guarded('publisher',publishCycle),{timezone:TIMEZONE});
 cron.schedule('30 4 * * *',()=>void guarded('metadata-repair',metadataRepairCycle),{timezone:TIMEZONE});
 
-console.log(`AutomationOpsAI worker started: editorial=${AUTO_EDITORIAL?'internal+membership':'membership-packages-only'}; publisher=1min; timezone=${TIMEZONE}; production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
+const EDITORIAL_MODE=AUTO_EDITORIAL?'internal+membership':process.env.CHATGPT_EDITORIAL_PACKAGES_ENABLED!=='false'?'membership-packages-only':'reviewed-masters-only';
+console.log(`AutomationOpsAI worker started: editorial=${EDITORIAL_MODE}; publisher=1min; timezone=${TIMEZONE}; production slots=06:00 short, 11:00 standard, 15:00 short, 22:00 short`);
 void guarded('startup-editorial',editorialCycle);
 void guarded('startup-publisher',publishCycle);
 void guarded('startup-metadata-repair',metadataRepairCycle);
