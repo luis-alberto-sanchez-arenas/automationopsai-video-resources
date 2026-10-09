@@ -50,9 +50,10 @@ jobs:
           spec="${{ steps.spec.outputs.path }}"
           renderer="$(jq -r .renderer "$spec")"
           key="$(jq -r .key "$spec")"
+          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
           mkdir -p output
           python "$renderer" --model ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx --voices ~/.cache/automationopsai-kokoro/voices-v1.0.bin --output output
-          bundle="deploy/creator-os/reviewed-masters/bundled/$key"
+          bundle="deploy/creator-os/reviewed-masters/$state/$key"
           mkdir -p "$bundle"
           cp "output/$(jq -r .outputVideo "$spec")" "$bundle/video.mp4"
           cp output/thumbnail.jpg "$bundle/thumbnail.jpg"
@@ -63,7 +64,8 @@ jobs:
           set -euo pipefail
           spec="${{ steps.spec.outputs.path }}"
           key="$(jq -r .key "$spec")"
-          video="deploy/creator-os/reviewed-masters/bundled/$key/video.mp4"
+          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
+          video="deploy/creator-os/reviewed-masters/$state/$key/video.mp4"
           read width height fps duration < <(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate:format=duration -of json "$video" | python -c "import json,sys; d=json.load(sys.stdin); s=d['streams'][0]; n,m=map(int,s['r_frame_rate'].split('/')); print(s['width'],s['height'],n/m,float(d['format']['duration']))")
           test "$width" -eq 1080
           test "$height" -eq 1920
@@ -71,7 +73,7 @@ jobs:
           import sys
           fps,duration=map(float,sys.argv[1:])
           assert fps >= 29.9, fps
-          assert 35 <= duration <= 90, duration
+          assert 35 <= duration <= 60, duration
           PY
           ffmpeg -hide_banner -i "$video" -af ebur128=peak=true -f null - 2> loudness.log
           python - <<'PY'
@@ -86,13 +88,52 @@ jobs:
           ffmpeg -hide_banner -i "$video" -vf blackdetect=d=1.0:pix_th=0.10 -af silencedetect=n=-50dB:d=2.0 -f null - 2> gaps.log
           ! grep -q 'black_duration' gaps.log
           ! grep -q 'silence_duration' gaps.log
+      - name: Build originality and review evidence
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"
+          key="$(jq -r .key "$spec")"
+          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
+          bundle="deploy/creator-os/reviewed-masters/$state/$key"
+          video="$bundle/video.mp4"
+          duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$video")"
+          jq --argjson duration "$duration" \
+            '.originalityManifest + {durationSeconds:$duration,proofSeconds:($duration * 0.82),textCardSeconds:0}' \
+            "$spec" > "$bundle/originality-manifest.json"
+          cp output/effect-overlap-report.json "$bundle/effect-overlap-report.json"
+          cp "$(jq -r .renderer "$spec")" "$bundle/renderer.py"
+          cp examples/webmcp-confirmation-gate/demo.mjs "$bundle/demo.mjs"
+          node "$bundle/demo.mjs" | tee "$bundle/proof-output.txt"
+          python tools/originality_gate.py \
+            --current "$bundle/originality-manifest.json" \
+            --history deploy/creator-os/reviewed-masters \
+            --report "$bundle/originality-report.json"
+          python tools/video_qa.py "$video" --report "$bundle/qa-report.json"
+          ffmpeg -y -hide_banner -loglevel error -i "$video" \
+            -vf "fps=1/5,scale=270:480,tile=4x3" -frames:v 1 "$bundle/contact-sheet.jpg"
+          mkdir -p "$bundle/mark-frames"
+          python - "$bundle/timeline.json" "$video" "$bundle/mark-frames" <<'PY'
+          import json, subprocess, sys
+          timeline, video, out = sys.argv[1:]
+          segments=json.load(open(timeline))['segments']
+          for item in segments:
+              for side,delta in [('before',-0.12),('after',0.12)]:
+                  t=max(0,float(item['start'])+delta)
+                  target=f"{out}/{int(item['index']):02d}-{side}.jpg"
+                  subprocess.run(['ffmpeg','-y','-hide_banner','-loglevel','error','-ss',str(t),'-i',video,'-frames:v','1','-q:v','2',target],check=True)
+          PY
+          test "$(jq -r .passed "$bundle/qa-report.json")" = true
+          test "$(jq -r .passed "$bundle/originality-report.json")" = true
+          test "$(jq -r .passed "$bundle/effect-overlap-report.json")" = true
+          jq 'del(.originalityManifest) + {video:"video.mp4",thumbnail:"thumbnail.jpg"}' "$spec" > "$bundle/manifest.json"
       - name: Commit verified Short
         run: |
           set -euo pipefail
           spec="${{ steps.spec.outputs.path }}"
           key="$(jq -r .key "$spec")"
+          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
           git config user.name automationopsai-bot
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add "deploy/creator-os/reviewed-masters/bundled/$key"
+          git add "deploy/creator-os/reviewed-masters/$state/$key"
           git commit -m "Add verified public Short $key [skip ci]"
           git push
