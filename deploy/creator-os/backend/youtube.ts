@@ -440,7 +440,7 @@ export async function processOnePublishStep(userId:string){
   if(!job)job=jobs.find(x=>!x.automationKey.startsWith('reviewed-')&&recoverable(x));
   if(!job){
     editorial=await getEditorialStatus(userId);
-    if(editorial.stage!=='ready'||!editorial.projectKey)return {status:'not-ready'};
+    if(editorial.stage!=='ready'||!editorial.projectKey)return {status:'idle',reason:'no-publishable-master'};
     job=jobs.find(x=>x.automationKey===editorial!.projectKey&&recoverable(x));
   }
   if(!job)return {status:'no-job'};
