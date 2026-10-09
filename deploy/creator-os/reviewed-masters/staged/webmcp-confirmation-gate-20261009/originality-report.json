@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "limits": {
+    "maxSceneOverlap": 0.35,
+    "minProofRatio": 0.7,
+    "maxTextCardRatio": 0.1,
+    "historyWindow": 10
+  },
+  "checks": {
+    "required.rendererId": true,
+    "required.backgroundGrammar": true,
+    "required.cameraModel": true,
+    "required.primaryInteraction": true,
+    "durationSeconds": 56.3,
+    "sceneSignatureCount": 9,
+    "proofRatio": 0.82,
+    "textCardRatio": 0.0,
+    "paletteCount": 6,
+    "rights.commercialUseCleared": true,
+    "rights.originalOrProceduralVisuals": true,
+    "rights.voiceLicenseCleared": true
+  },
+  "comparisons": [],
+  "failures": []
+}

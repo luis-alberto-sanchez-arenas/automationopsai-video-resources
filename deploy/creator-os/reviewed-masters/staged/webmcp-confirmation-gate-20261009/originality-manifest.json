@@ -1,0 +1,36 @@
+{
+  "rendererId": "webmcp-consequence-orbit-20261009-v1",
+  "palette": [
+    "#F4F0E6",
+    "#111318",
+    "#4255FF",
+    "#FF5B55",
+    "#D7FF4A",
+    "#48D7B6"
+  ],
+  "backgroundGrammar": "warm editorial workbench with kinetic orbital gutters confined outside a central browser-and-terminal evidence plane",
+  "cameraModel": "continuous evidence push from live booking form to code ribbon to terminal trace, with causal cursor paths and result-state zoom",
+  "primaryInteraction": "repeat one MEX-SFO booking input, flip consequentialHint, reject confirmation, and verify charges fall from 480 to 0",
+  "sceneSignatures": [
+    "cursor traverses MEX-SFO booking form",
+    "480-dollar charge appears after unmarked call",
+    "WebMCP registerTool code reveals line by line",
+    "consequentialHint value flips false to true",
+    "terminal pulse traces unsafe execution",
+    "terminal pulse stops at confirmation boundary",
+    "human confirmation dialog rejects purchase",
+    "zero-charge outcome expands from booking surface",
+    "three-node structured-tool consequence enforcement path"
+  ],
+  "durationSeconds": 56.300000,
+  "proofSeconds": 46.166,
+  "textCardSeconds": 0,
+  "rights": {
+    "commercialUseCleared": true,
+    "originalOrProceduralVisuals": true,
+    "voiceLicenseCleared": true,
+    "visualBasis": "Original Pillow/FFmpeg procedural interface; no third-party images, footage, music, characters, or logos.",
+    "voiceBasis": "Kokoro ONNX stock af_heart voice; model and weights used under their published open commercial-use terms.",
+    "sourceCodeBasis": "Original deterministic simulation using the public WebMCP API object shape; official documentation is referenced, not copied as audiovisual media."
+  }
+}

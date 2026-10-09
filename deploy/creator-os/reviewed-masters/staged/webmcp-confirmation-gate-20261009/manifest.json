@@ -1,0 +1,23 @@
+{
+  "key": "webmcp-confirmation-gate-20261009",
+  "stageOnly": true,
+  "renderer": "renderers/2026-10-09-webmcp-confirmation-short.py",
+  "outputVideo": "webmcp-confirmation-gate.mp4",
+  "title": "Stop Browser Agents Before They Buy: WebMCP Safety Gate #Shorts",
+  "description": "A deterministic local simulation shows the same browser-agent booking twice: first it creates a $480 side effect, then WebMCP's consequentialHint marks the action as high-impact and the client stops for confirmation before execution. No real purchase or account is used.\n\nWebMCP is a proposed standard in a Chrome origin trial, not a universal browser guarantee. Production clients must enforce confirmation policy and test the cancellation path. Official reference (updated October 7, 2026): https://developer.chrome.com/docs/ai/webmcp and https://developer.chrome.com/docs/ai/webmcp/imperative-api\n\nOriginal procedural visuals and deterministic demo: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources\nSynthetic narration: Kokoro stock voice.\n\n#WebMCP #AIAgents #AgentSafety #Shorts",
+  "tags": [
+    "WebMCP",
+    "AI agents",
+    "browser agents",
+    "agent safety",
+    "AI automation",
+    "JavaScript",
+    "Chrome developers",
+    "human in the loop",
+    "software security",
+    "Shorts"
+  ],
+  "transcript": "A browser agent is one click away from spending four hundred eighty dollars. Watch the same booking run twice. First, the page exposes a Web M C P tool with a JSON schema, but the action is not marked consequential. The client calls book trip. Route Mexico City to San Francisco. Result: booked. One charge created. Now change one annotation: consequential hint, true. This tells compatible agents and browsers the action has real-world impact. Run the identical input again. This time the client stops before execution and returns confirmation required. Reject the prompt. Zero bookings. Zero charges. The side effect never runs. Web M C P is still a proposed standard and Chrome origin trial, so enforce the policy in your client too. Expose structured tools, label consequences, and test the stop path before an agent touches production.",
+  "video": "video.mp4",
+  "thumbnail": "thumbnail.jpg"
+}

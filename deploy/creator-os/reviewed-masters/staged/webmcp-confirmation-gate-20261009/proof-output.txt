@@ -1,0 +1,3 @@
+before=BOOKED charges=$480
+after=CONFIRMATION_REQUIRED charges=$0
+PASS: consequential action stopped before side effect
