@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import cron from 'node-cron';
 import { db, initPlatform, storage, withLock } from './platform.js';
 import { advanceChatGptEditorial, advanceEditorial, importChatGptEditorialPackages, markQueued } from './editorial.js';
-import { demandContext, ensurePublishJob, ensureReviewedPublishJob, processOnePublishStep, promoteApprovedReviewedJobs, releaseUploadedAssets, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
+import { demandContext, ensurePublishJob, ensureReviewedPublishJob, listJobs, processOnePublishStep, promoteApprovedReviewedJobs, releaseUploadedAssets, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
@@ -135,6 +135,9 @@ async function publishCycle(){
   ]);
   console.log(`worker: youtube=${JSON.stringify(youtube.status==='fulfilled'?youtube.value:{status:'failed',error:String(youtube.reason)})}`);
   console.log(`worker: tiktok=${JSON.stringify(tiktok.status==='fulfilled'?tiktok.value:{status:'failed',error:String(tiktok.reason)})}`);
+  const queue=await listJobs(USER_ID);
+  const queueHealth={total:queue.length,pending:queue.filter(x=>x.status==='pending').length,uploading:queue.filter(x=>x.status==='uploading').length,failed:queue.filter(x=>x.status==='failed').length,public:queue.filter(x=>x.status==='published'&&x.privacyStatus==='public').length,recentFailures:queue.filter(x=>x.status==='failed').slice(0,3).map(x=>({key:x.automationKey,error:(x.lastError||'unknown').slice(0,180)}))};
+  console.log(`worker: queue=${JSON.stringify(queueHealth)}`);
   const promoted=await promoteApprovedReviewedJobs(USER_ID);
   if(promoted.length)console.log(`worker: promoted=${JSON.stringify(promoted)}`);
   const released=await releaseUploadedAssets(USER_ID);
