@@ -1,0 +1,32 @@
+{
+  "rendererId": "synthetic-asset-forensic-macro-v1-20261010",
+  "palette": [
+    "#0A0A0B",
+    "#F8F1E1",
+    "#FF7A00",
+    "#B6FF5C",
+    "#9B5DE5",
+    "#00C2FF"
+  ],
+  "backgroundGrammar": "dark forensic light table with orbiting inspection rings, horizontal byte traces, and a magnified procedural pixel lattice",
+  "cameraModel": "continuous floating asset inspection followed by a causal macro dive into the changed coordinate and return to the verification rail",
+  "primaryInteraction": "hash an original procedural PNG, mutate one pixel, rehash the altered bytes, reject the mismatch, and inspect the changed coordinate",
+  "sceneSignatures": [
+    "procedural-campaign-asset-scan",
+    "sha256-fingerprint-types-on-byte-read",
+    "single-pixel-file-mutation",
+    "fingerprint-mismatch-release-reject",
+    "macro-dive-to-coordinate-61-37",
+    "tamper-evidence-scope-warning",
+    "source-license-model-review-checklist"
+  ],
+  "rights": {
+    "commercialUseCleared": true,
+    "originalOrProceduralVisuals": true,
+    "voiceLicenseCleared": true
+  },
+  "durationSeconds": 47.800000,
+  "proofSeconds": null,
+  "textCardSeconds": null,
+  "measurementStatus": "pending-timeline-review"
+}

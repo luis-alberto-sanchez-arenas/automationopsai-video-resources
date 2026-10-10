@@ -1,0 +1,23 @@
+{
+  "key": "ai-provenance-pixel-gate-20261010",
+  "revision": 1,
+  "stageOnly": true,
+  "renderer": "renderers/2026-10-10-ai-provenance-pixel-short.py",
+  "proofSource": "examples/ai-provenance-pixel-gate/proof.py",
+  "outputVideo": "video.mp4",
+  "title": "One Pixel Changed This AI Asset. The Gate Caught It #Shorts",
+  "description": "A reproducible local test records the SHA-256 fingerprint of a synthetic campaign asset, changes exactly one pixel, and reruns the verifier. The altered file is rejected before upload. A checksum provides tamper evidence; it does not prove authorship, licensing, or legal compliance.\n\nEU AI Act transparency overview: https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai\nPython hashlib reference: https://docs.python.org/3/library/hashlib.html\nReproducible resources: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources\nSynthetic Kokoro narration; original procedural visuals; no music or third-party footage.\n\n#AITransparency #ContentProvenance #AIGovernance #Shorts",
+  "tags": [
+    "AI transparency",
+    "content provenance",
+    "synthetic media",
+    "SHA-256",
+    "AI governance",
+    "tamper detection",
+    "AI workflow",
+    "Shorts"
+  ],
+  "transcript": "This image was generated for a campaign. Before publishing it, record the file hash and a small provenance manifest. The verifier reads the real PNG bytes. SHA-256 returns this fingerprint, and the release gate passes. Now change exactly one pixel. It looks identical at normal size, but the underlying file is no longer the approved asset. Run the same verifier again. The fingerprint changes, so the provenance gate rejects the altered file before upload. Zoom in and the evidence becomes visible: one green pixel at coordinate sixty-one, thirty-seven, against the orange mark. A checksum proves tampering, not authorship or legal compliance. Keep the original source, license, model note, and review record too.",
+  "video": "video.mp4",
+  "thumbnail": "thumbnail.jpg"
+}

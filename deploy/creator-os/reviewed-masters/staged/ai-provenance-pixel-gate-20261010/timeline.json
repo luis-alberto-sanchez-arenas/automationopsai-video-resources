@@ -1,0 +1,42 @@
+{
+  "voice": "Kokoro stock af_heart",
+  "segments": [
+    {
+      "index": 0,
+      "text": "This image was generated for a campaign. Before publishing it, record the file hash and a small provenance manifest.",
+      "start": 0.0,
+      "end": 7.214
+    },
+    {
+      "index": 1,
+      "text": "The verifier reads the real P N G bytes. SHA two fifty-six returns this fingerprint, and the release gate passes.",
+      "start": 7.334,
+      "end": 15.424
+    },
+    {
+      "index": 2,
+      "text": "Now change exactly one pixel. It looks identical at normal size, but the underlying file is no longer the approved asset.",
+      "start": 15.544,
+      "end": 23.5426
+    },
+    {
+      "index": 3,
+      "text": "Run the same verifier again. The fingerprint changes, so the provenance gate rejects the altered file before upload.",
+      "start": 23.6626,
+      "end": 30.7612
+    },
+    {
+      "index": 4,
+      "text": "Zoom in and the evidence becomes visible: one green pixel at coordinate sixty-one, thirty-seven, against the orange mark.",
+      "start": 30.8812,
+      "end": 38.8845
+    },
+    {
+      "index": 5,
+      "text": "A checksum proves tampering, not authorship or legal compliance. Keep the original source, license, model note, and review record too.",
+      "start": 39.0045,
+      "end": 47.7758
+    }
+  ],
+  "duration": 47.7758
+}
