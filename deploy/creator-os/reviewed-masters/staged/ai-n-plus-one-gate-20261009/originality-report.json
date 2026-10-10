@@ -11,7 +11,7 @@
     "required.backgroundGrammar": true,
     "required.cameraModel": true,
     "required.primaryInteraction": true,
-    "durationSeconds": 48.366667,
+    "durationSeconds": 48.433333,
     "sceneSignatureCount": 7,
     "proofRatio": 0.0,
     "textCardRatio": 0.0,
@@ -27,5 +27,5 @@
     "proofSeconds requires a finite measured duration between zero and durationSeconds",
     "textCardSeconds requires a finite measured duration between zero and durationSeconds"
   ],
-  "videoSha256": "9c89f8b0303d9161f64d3f0d7029c454dd2d012478492fd4e4dc455d635396bc"
+  "videoSha256": "f453ef783e0ca65e728cbafa2d645618a9dfcff07f84c01964685ac7c25f5149"
 }
