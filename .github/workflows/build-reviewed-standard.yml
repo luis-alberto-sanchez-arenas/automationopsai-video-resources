@@ -1,0 +1,104 @@
+name: Build reviewed standard AI episode
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/creator-os/reviewed-masters/inbox-standard/**.json'
+permissions:
+  contents: write
+concurrency:
+  group: reviewed-ai-standard
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core imagemagick
+          pip install --disable-pip-version-check kokoro-onnx==0.6.1 soundfile==0.13.1 numpy==2.2.6 pillow==11.3.0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/automationopsai-kokoro
+          key: kokoro-v1.1-int8
+      - name: Verify model assets
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/automationopsai-kokoro
+          test -f ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx || curl -fL --retry 4 https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.int8.onnx -o ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx
+          test -f ~/.cache/automationopsai-kokoro/voices-v1.0.bin || curl -fL --retry 4 https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin -o ~/.cache/automationopsai-kokoro/voices-v1.0.bin
+          echo 'ae315a79b623f244700e4afb9246c46a26066782e049ba174bf3ba433970ee9c  /home/runner/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx' | sha256sum -c -
+          echo 'bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d  /home/runner/.cache/automationopsai-kokoro/voices-v1.0.bin' | sha256sum -c -
+      - name: Select specification
+        id: spec
+        run: |
+          set -euo pipefail
+          spec="$(git diff --name-only HEAD^ HEAD -- 'deploy/creator-os/reviewed-masters/inbox-standard/*.json' | tail -1)"
+          test -n "$spec"
+          echo "path=$spec" >> "$GITHUB_OUTPUT"
+      - name: Execute proof and render narration-first episode
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"
+          python "$(jq -r .proofSource "$spec")" | tee proof-output.json
+          python "$(jq -r .renderer "$spec")" \
+            --model ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx \
+            --voices ~/.cache/automationopsai-kokoro/voices-v1.0.bin \
+            --proof "$(jq -r .proofSource "$spec")" --output output
+          key="$(jq -r .key "$spec")"; bundle="deploy/creator-os/reviewed-masters/staged/$key"; mkdir -p "$bundle"
+          cp output/video.mp4 output/thumbnail.jpg output/timeline.json output/contact-sheet.jpg output/effect-overlap-report.json output/proof-output.json "$bundle/"
+          cp "$(jq -r .renderer "$spec")" "$bundle/renderer.py"
+          cp "$(jq -r .proofSource "$spec")" "$bundle/demo.py"
+          cp "$(jq -r .serverSource "$spec")" "$bundle/server.py"
+          jq 'del(.originalityManifest) + {video:"video.mp4",thumbnail:"thumbnail.jpg",stageOnly:true}' "$spec" > "$bundle/manifest.json"
+      - name: Validate technical and originality evidence
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"; key="$(jq -r .key "$spec")"; bundle="deploy/creator-os/reviewed-masters/staged/$key"; video="$bundle/video.mp4"
+          duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$video")"
+          python - "$duration" <<'PY'
+          import sys
+          duration=float(sys.argv[1]); assert 240 <= duration <= 480, duration
+          PY
+          jq --argjson duration "$duration" '.originalityManifest + {durationSeconds:$duration,proofSeconds:null,textCardSeconds:null,measurementStatus:"pending-timeline-review"}' "$spec" > "$bundle/originality-manifest.json"
+          gate=0; python tools/originality_gate.py --current "$bundle/originality-manifest.json" --history deploy/creator-os/reviewed-masters --report "$bundle/originality-report.json" || gate=$?
+          test "$gate" -eq 0 -o "$gate" -eq 2
+          python tools/video_qa.py "$video" --report "$bundle/qa-report.json"
+          test "$(jq -r .passed "$bundle/qa-report.json")" = true
+          test "$(jq -r .passed "$bundle/effect-overlap-report.json")" = true
+          mkdir -p "$bundle/mark-frames"
+          python - "$bundle/timeline.json" "$video" "$bundle/mark-frames" <<'PY'
+          import json,subprocess,sys
+          timeline,video,out=sys.argv[1:]
+          for item in json.load(open(timeline))['segments']:
+              for side,delta in [('before',-.12),('after',.12)]:
+                  target=f"{out}/{int(item['index']):02d}-{side}.jpg"; t=max(0,float(item['start'])+delta)
+                  subprocess.run(['ffmpeg','-y','-hide_banner','-loglevel','error','-ss',str(t),'-i',video,'-frames:v','1','-q:v','3',target],check=True)
+          PY
+          jq -n --arg sha "$(sha256sum "$video" | cut -d' ' -f1)" '{approved:false,stageOnly:true,videoSha256:$sha,status:"awaiting-timeline-and-audiovisual-review"}' > "$bundle/publication-review.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: standard-episode-draft-and-diagnostics
+          path: |
+            output/
+            proof-output.json
+            deploy/creator-os/reviewed-masters/staged/
+          retention-days: 7
+      - name: Commit staged draft only
+        run: |
+          set -euo pipefail
+          spec="${{ steps.spec.outputs.path }}"; key="$(jq -r .key "$spec")"
+          git config user.name automationopsai-bot
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "deploy/creator-os/reviewed-masters/staged/$key"
+          git diff --cached --quiet && exit 0
+          git commit -m "Save unapproved standard episode $key [skip ci]"
+          git pull --rebase origin main
+          git push
