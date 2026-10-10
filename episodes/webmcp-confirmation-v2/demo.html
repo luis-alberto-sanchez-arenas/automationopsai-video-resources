@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WebMCP consequence policy — local simulation</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#211733;color:#faf3e8}
+body{margin:0;padding:clamp(16px,4vw,64px)}main{max-width:940px;margin:auto}h1{font-size:clamp(28px,5vw,48px);line-height:1.1}
+p{line-height:1.55}small{color:#cdc1da}section{background:#faf3e8;color:#241c31;border-radius:24px;padding:clamp(18px,4vw,36px);margin:24px 0}
+label{display:block;margin:18px 0}input{font:inherit;padding:10px;border:2px solid #241c31;border-radius:6px;background:white;color:#241c31;max-width:85%}
+button{font:inherit;font-weight:700;background:#dbea8d;color:#241c31;border:2px solid #241c31;border-radius:8px;padding:14px 18px;cursor:pointer;margin:5px}
+button:focus-visible,input:focus-visible{outline:4px solid #ec743f;outline-offset:4px}code{overflow-wrap:anywhere}output{display:block;font-size:26px;font-weight:700;margin:20px 0}
+.metrics{display:flex;gap:35px;flex-wrap:wrap}.metrics b{display:block;font-size:40px}#confirm{border:3px solid #ec743f;padding:20px;border-radius:16px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#302340;color:#faf3e8;padding:22px;border-radius:14px;font-size:16px}
+[hidden]{display:none!important}
+</style>
+<main><small>AUTOMATION OPERATOR / REPRODUCIBLE LAB</small><h1>Who authorizes the charge?</h1>
+<p>This is a custom, deterministic client-policy simulation using WebMCP's annotation shape. It does not invoke native WebMCP, an AI model, a bank, or a travel service. All money values are fictional.</p>
+<section><h2><code>book_trip</code> · MEX → SFO</h2><p>Proposed total: <strong>$480 USD</strong></p>
+<label><input id="hint" type="checkbox"> <code>consequentialHint: true</code></label>
+<button id="run">Run tool</button><button id="reset">Reset sandbox</button>
+<div id="confirm" hidden><h3>Human confirmation required</h3><p>Allow the simulated $480 booking?</p><button id="reject">Reject</button><button id="approve">Approve simulation</button></div>
+<output id="status" role="status" aria-live="polite">READY</output>
+<div class="metrics"><div>Executions<b id="executions">0</b></div><div>Bookings<b id="bookings">0</b></div><div>Charged<b id="charged">$0</b></div></div></section>
+<button id="tests">Run all four assertions</button><pre id="trace" aria-live="polite">No events yet.</pre>
+<p>An annotation describes consequences; a compatible client must enforce its confirmation policy. It is not authorization by itself. WebMCP remains experimental.</p>
+<p><a href="https://developer.chrome.com/docs/ai/webmcp/imperative-api">Official WebMCP reference</a></p></main>
+<script>
+function execute(consequential, decision=null){
+ if(consequential && decision!==true)return {status:decision===false?'REJECTED':'CONFIRMATION REQUIRED',executions:0,bookings:0,charged:0};
+ return {status:'BOOKED',executions:1,bookings:1,charged:480};
+}
+function update(result){
+ document.querySelector('#status').textContent=result.status;
+ for(const key of ['executions','bookings','charged'])document.querySelector('#'+key).textContent=(key==='charged'?'$':'')+result[key];
+ document.querySelector('#confirm').hidden=result.status!=='CONFIRMATION REQUIRED';
+ document.querySelector('#trace').textContent=JSON.stringify(result,null,2);
+}
+document.querySelector('#run').onclick=()=>update(execute(document.querySelector('#hint').checked));
+document.querySelector('#reject').onclick=()=>update(execute(true,false));
+document.querySelector('#approve').onclick=()=>update(execute(true,true));
+document.querySelector('#reset').onclick=()=>update({status:'READY',executions:0,bookings:0,charged:0});
+function testAll(){
+ const cases={unsafe:execute(false),waiting:execute(true),rejected:execute(true,false),approved:execute(true,true)};
+ const pass=cases.unsafe.charged===480&&cases.waiting.executions===0&&cases.rejected.charged===0&&cases.approved.executions===1;
+ if(!pass)throw Error('Policy regression');return {cases,assertionsPassed:4};
+}
+document.querySelector('#tests').onclick=()=>{document.querySelector('#trace').textContent=JSON.stringify(testAll(),null,2)};
+window.testAll=testAll;
+</script></html>

@@ -1,0 +1,766 @@
+{
+  "method": "PocketSphinx 5.0.4 forced acoustic alignment, 10ms frames",
+  "sourceSha256": "d18dad23b3a08ce6d77df0d447e0b8468b1a38c3edd967330b1758da7b4aab14",
+  "note": "Acoustic estimates; manual listening review remains required.",
+  "segments": [
+    {
+      "index": 0,
+      "text": "A browser agent is one click away from spending four hundred eighty dollars. Watch the same booking run twice.",
+      "start": 0.0,
+      "end": 6.7347,
+      "words": [
+        {
+          "word": "a",
+          "start": 0.0,
+          "end": 0.1
+        },
+        {
+          "word": "browser",
+          "start": 0.1,
+          "end": 0.57
+        },
+        {
+          "word": "agent",
+          "start": 0.57,
+          "end": 1.12
+        },
+        {
+          "word": "is",
+          "start": 1.12,
+          "end": 1.3
+        },
+        {
+          "word": "one",
+          "start": 1.3,
+          "end": 1.6
+        },
+        {
+          "word": "click",
+          "start": 1.6,
+          "end": 1.86
+        },
+        {
+          "word": "away",
+          "start": 1.86,
+          "end": 2.24
+        },
+        {
+          "word": "from",
+          "start": 2.24,
+          "end": 2.41
+        },
+        {
+          "word": "spending",
+          "start": 2.41,
+          "end": 2.76
+        },
+        {
+          "word": "four",
+          "start": 2.76,
+          "end": 3.11
+        },
+        {
+          "word": "hundred",
+          "start": 3.11,
+          "end": 3.41
+        },
+        {
+          "word": "eighty",
+          "start": 3.41,
+          "end": 3.6
+        },
+        {
+          "word": "dollars",
+          "start": 3.6,
+          "end": 4.15
+        },
+        {
+          "word": "watch",
+          "start": 4.6,
+          "end": 4.97
+        },
+        {
+          "word": "the",
+          "start": 4.97,
+          "end": 5.06
+        },
+        {
+          "word": "same",
+          "start": 5.06,
+          "end": 5.4
+        },
+        {
+          "word": "booking",
+          "start": 5.4,
+          "end": 5.76
+        },
+        {
+          "word": "run",
+          "start": 5.76,
+          "end": 6.01
+        },
+        {
+          "word": "twice",
+          "start": 6.01,
+          "end": 6.56
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "text": "First, the page exposes a Web M C P tool with a JSON schema, but the action is not marked consequential.",
+      "start": 6.8347,
+      "end": 14.134,
+      "words": [
+        {
+          "word": "first",
+          "start": 6.835,
+          "end": 7.395
+        },
+        {
+          "word": "the",
+          "start": 7.395,
+          "end": 7.495
+        },
+        {
+          "word": "page",
+          "start": 7.495,
+          "end": 7.865
+        },
+        {
+          "word": "exposes",
+          "start": 7.865,
+          "end": 8.515
+        },
+        {
+          "word": "a",
+          "start": 8.515,
+          "end": 8.605
+        },
+        {
+          "word": "web",
+          "start": 8.605,
+          "end": 8.945
+        },
+        {
+          "word": "m",
+          "start": 8.945,
+          "end": 9.175
+        },
+        {
+          "word": "c",
+          "start": 9.175,
+          "end": 9.435
+        },
+        {
+          "word": "p",
+          "start": 9.435,
+          "end": 9.635
+        },
+        {
+          "word": "tool",
+          "start": 9.635,
+          "end": 10.075
+        },
+        {
+          "word": "with",
+          "start": 10.075,
+          "end": 10.185
+        },
+        {
+          "word": "a",
+          "start": 10.185,
+          "end": 10.235
+        },
+        {
+          "word": "json",
+          "start": 10.235,
+          "end": 10.815
+        },
+        {
+          "word": "schema",
+          "start": 10.815,
+          "end": 11.275
+        },
+        {
+          "word": "but",
+          "start": 11.665,
+          "end": 11.795
+        },
+        {
+          "word": "the",
+          "start": 11.795,
+          "end": 11.875
+        },
+        {
+          "word": "action",
+          "start": 11.875,
+          "end": 12.375
+        },
+        {
+          "word": "is",
+          "start": 12.375,
+          "end": 12.565
+        },
+        {
+          "word": "not",
+          "start": 12.565,
+          "end": 12.835
+        },
+        {
+          "word": "marked",
+          "start": 12.835,
+          "end": 13.205
+        },
+        {
+          "word": "consequential",
+          "start": 13.205,
+          "end": 13.945
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "text": "The client calls book trip. Route Mexico City to San Francisco. Result: booked. One charge created.",
+      "start": 14.234,
+      "end": 20.98,
+      "words": [
+        {
+          "word": "the",
+          "start": 14.234,
+          "end": 14.344
+        },
+        {
+          "word": "client",
+          "start": 14.344,
+          "end": 14.714
+        },
+        {
+          "word": "calls",
+          "start": 14.714,
+          "end": 14.984
+        },
+        {
+          "word": "book",
+          "start": 14.984,
+          "end": 15.184
+        },
+        {
+          "word": "trip",
+          "start": 15.184,
+          "end": 15.544
+        },
+        {
+          "word": "route",
+          "start": 15.844,
+          "end": 16.084
+        },
+        {
+          "word": "mexico",
+          "start": 16.084,
+          "end": 16.554
+        },
+        {
+          "word": "city",
+          "start": 16.554,
+          "end": 16.864
+        },
+        {
+          "word": "to",
+          "start": 16.864,
+          "end": 16.974
+        },
+        {
+          "word": "san",
+          "start": 16.974,
+          "end": 17.144
+        },
+        {
+          "word": "francisco",
+          "start": 17.144,
+          "end": 17.884
+        },
+        {
+          "word": "result",
+          "start": 18.274,
+          "end": 18.784
+        },
+        {
+          "word": "booked",
+          "start": 18.784,
+          "end": 19.314
+        },
+        {
+          "word": "one",
+          "start": 19.564,
+          "end": 19.844
+        },
+        {
+          "word": "charge",
+          "start": 19.844,
+          "end": 20.224
+        },
+        {
+          "word": "created",
+          "start": 20.224,
+          "end": 20.764
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "text": "Now change one annotation: consequential hint, true. This tells compatible agents and browsers the action has real-world impact.",
+      "start": 21.08,
+      "end": 29.7346,
+      "words": [
+        {
+          "word": "now",
+          "start": 21.08,
+          "end": 21.39
+        },
+        {
+          "word": "change",
+          "start": 21.39,
+          "end": 21.77
+        },
+        {
+          "word": "one",
+          "start": 21.77,
+          "end": 21.97
+        },
+        {
+          "word": "annotation",
+          "start": 21.97,
+          "end": 22.64
+        },
+        {
+          "word": "consequential",
+          "start": 23.02,
+          "end": 23.71
+        },
+        {
+          "word": "hint",
+          "start": 23.71,
+          "end": 24.23
+        },
+        {
+          "word": "true",
+          "start": 24.23,
+          "end": 24.61
+        },
+        {
+          "word": "this",
+          "start": 25.09,
+          "end": 25.3
+        },
+        {
+          "word": "tells",
+          "start": 25.3,
+          "end": 25.59
+        },
+        {
+          "word": "compatible",
+          "start": 25.59,
+          "end": 26.24
+        },
+        {
+          "word": "agents",
+          "start": 26.24,
+          "end": 26.78
+        },
+        {
+          "word": "and",
+          "start": 26.78,
+          "end": 26.96
+        },
+        {
+          "word": "browsers",
+          "start": 26.96,
+          "end": 27.51
+        },
+        {
+          "word": "the",
+          "start": 27.51,
+          "end": 27.62
+        },
+        {
+          "word": "action",
+          "start": 27.62,
+          "end": 28.07
+        },
+        {
+          "word": "has",
+          "start": 28.07,
+          "end": 28.3
+        },
+        {
+          "word": "real",
+          "start": 28.3,
+          "end": 28.61
+        },
+        {
+          "word": "world",
+          "start": 28.61,
+          "end": 28.98
+        },
+        {
+          "word": "impact",
+          "start": 28.98,
+          "end": 29.55
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "text": "Run the identical input again. This time the client stops before execution and returns confirmation required.",
+      "start": 29.8346,
+      "end": 37.114,
+      "words": [
+        {
+          "word": "run",
+          "start": 29.835,
+          "end": 30.185
+        },
+        {
+          "word": "the",
+          "start": 30.185,
+          "end": 30.345
+        },
+        {
+          "word": "identical",
+          "start": 30.345,
+          "end": 30.935
+        },
+        {
+          "word": "input",
+          "start": 30.935,
+          "end": 31.295
+        },
+        {
+          "word": "again",
+          "start": 31.295,
+          "end": 31.675
+        },
+        {
+          "word": "this",
+          "start": 32.225,
+          "end": 32.405
+        },
+        {
+          "word": "time",
+          "start": 32.405,
+          "end": 32.795
+        },
+        {
+          "word": "the",
+          "start": 32.795,
+          "end": 32.885
+        },
+        {
+          "word": "client",
+          "start": 32.885,
+          "end": 33.275
+        },
+        {
+          "word": "stops",
+          "start": 33.275,
+          "end": 33.645
+        },
+        {
+          "word": "before",
+          "start": 33.645,
+          "end": 33.935
+        },
+        {
+          "word": "execution",
+          "start": 33.935,
+          "end": 34.695
+        },
+        {
+          "word": "and",
+          "start": 34.905,
+          "end": 35.055
+        },
+        {
+          "word": "returns",
+          "start": 35.055,
+          "end": 35.565
+        },
+        {
+          "word": "confirmation",
+          "start": 35.565,
+          "end": 36.285
+        },
+        {
+          "word": "required",
+          "start": 36.285,
+          "end": 36.925
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "text": "Reject the prompt. Zero bookings. Zero charges. The side effect never runs.",
+      "start": 37.214,
+      "end": 42.7586,
+      "words": [
+        {
+          "word": "reject",
+          "start": 37.214,
+          "end": 37.664
+        },
+        {
+          "word": "the",
+          "start": 37.664,
+          "end": 37.744
+        },
+        {
+          "word": "prompt",
+          "start": 37.744,
+          "end": 38.264
+        },
+        {
+          "word": "zero",
+          "start": 38.584,
+          "end": 38.944
+        },
+        {
+          "word": "bookings",
+          "start": 38.944,
+          "end": 39.534
+        },
+        {
+          "word": "zero",
+          "start": 39.714,
+          "end": 40.104
+        },
+        {
+          "word": "charges",
+          "start": 40.104,
+          "end": 40.774
+        },
+        {
+          "word": "the",
+          "start": 41.004,
+          "end": 41.094
+        },
+        {
+          "word": "side",
+          "start": 41.094,
+          "end": 41.464
+        },
+        {
+          "word": "effect",
+          "start": 41.464,
+          "end": 41.824
+        },
+        {
+          "word": "never",
+          "start": 41.824,
+          "end": 42.124
+        },
+        {
+          "word": "runs",
+          "start": 42.124,
+          "end": 42.564
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "text": "Web M C P is still a proposed standard and Chrome origin trial, so enforce the policy in your client too.",
+      "start": 42.8586,
+      "end": 49.6459,
+      "words": [
+        {
+          "word": "web",
+          "start": 42.859,
+          "end": 43.069
+        },
+        {
+          "word": "m",
+          "start": 43.069,
+          "end": 43.329
+        },
+        {
+          "word": "c",
+          "start": 43.329,
+          "end": 43.599
+        },
+        {
+          "word": "p",
+          "start": 43.599,
+          "end": 43.999
+        },
+        {
+          "word": "is",
+          "start": 43.999,
+          "end": 44.109
+        },
+        {
+          "word": "still",
+          "start": 44.109,
+          "end": 44.369
+        },
+        {
+          "word": "a",
+          "start": 44.369,
+          "end": 44.409
+        },
+        {
+          "word": "proposed",
+          "start": 44.409,
+          "end": 44.939
+        },
+        {
+          "word": "standard",
+          "start": 44.939,
+          "end": 45.489
+        },
+        {
+          "word": "and",
+          "start": 45.489,
+          "end": 45.709
+        },
+        {
+          "word": "chrome",
+          "start": 45.709,
+          "end": 46.059
+        },
+        {
+          "word": "origin",
+          "start": 46.059,
+          "end": 46.479
+        },
+        {
+          "word": "trial",
+          "start": 46.479,
+          "end": 46.899
+        },
+        {
+          "word": "so",
+          "start": 47.289,
+          "end": 47.479
+        },
+        {
+          "word": "enforce",
+          "start": 47.479,
+          "end": 47.959
+        },
+        {
+          "word": "the",
+          "start": 47.959,
+          "end": 48.039
+        },
+        {
+          "word": "policy",
+          "start": 48.039,
+          "end": 48.599
+        },
+        {
+          "word": "in",
+          "start": 48.599,
+          "end": 48.679
+        },
+        {
+          "word": "your",
+          "start": 48.679,
+          "end": 48.789
+        },
+        {
+          "word": "client",
+          "start": 48.789,
+          "end": 49.159
+        },
+        {
+          "word": "too",
+          "start": 49.159,
+          "end": 49.459
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "text": "Expose structured tools, label consequences, and test the stop path before an agent touches production.",
+      "start": 49.7459,
+      "end": 56.2359,
+      "words": [
+        {
+          "word": "expose",
+          "start": 49.746,
+          "end": 50.286
+        },
+        {
+          "word": "structured",
+          "start": 50.286,
+          "end": 50.766
+        },
+        {
+          "word": "tools",
+          "start": 50.766,
+          "end": 51.286
+        },
+        {
+          "word": "label",
+          "start": 51.516,
+          "end": 51.896
+        },
+        {
+          "word": "consequences",
+          "start": 51.896,
+          "end": 52.726
+        },
+        {
+          "word": "and",
+          "start": 53.036,
+          "end": 53.206
+        },
+        {
+          "word": "test",
+          "start": 53.206,
+          "end": 53.496
+        },
+        {
+          "word": "the",
+          "start": 53.496,
+          "end": 53.576
+        },
+        {
+          "word": "stop",
+          "start": 53.576,
+          "end": 53.936
+        },
+        {
+          "word": "path",
+          "start": 53.936,
+          "end": 54.336
+        },
+        {
+          "word": "before",
+          "start": 54.336,
+          "end": 54.636
+        },
+        {
+          "word": "an",
+          "start": 54.636,
+          "end": 54.696
+        },
+        {
+          "word": "agent",
+          "start": 54.696,
+          "end": 55.126
+        },
+        {
+          "word": "touches",
+          "start": 55.126,
+          "end": 55.476
+        },
+        {
+          "word": "production",
+          "start": 55.476,
+          "end": 56.046
+        }
+      ]
+    }
+  ]
+}

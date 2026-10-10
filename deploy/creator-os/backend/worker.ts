@@ -5,6 +5,7 @@ import { db, initPlatform, storage, withLock } from './platform.js';
 import { advanceChatGptEditorial, advanceEditorial, importChatGptEditorialPackages, markQueued } from './editorial.js';
 import { demandContext, ensurePublishJob, ensureReviewedPublishJob, listJobs, processOnePublishStep, promoteApprovedReviewedJobs, releaseUploadedAssets, repairPublishedDiscoveryMetadata, youtubeConnected } from './youtube.js';
 import {ensureTikTokPublishJob,processOneTikTokStep,tiktokMirrorEnabled} from './tiktok.js';
+import {validateReviewedMaster} from './master-review.js';
 
 const USER_ID=process.env.OWNER_USER_ID||'owner';
 const SCHEDULER_TABLE='scheduler_state_v1';
@@ -42,8 +43,15 @@ async function importBundledReviewedMasters(){
         console.warn(`worker reviewed-master blocked ${directory}: stageOnly`);
         continue;
       }
-      const video=await readFile(join(base,manifest.video));
-      const thumb=await readFile(join(base,manifest.thumbnail));
+      const video=await readFile(join(base,'video.mp4'));
+      const loadEvidence=async(name:string)=>JSON.parse(await readFile(join(base,name),'utf8'));
+      const [review,qa,composition,originality]=await Promise.all([
+        loadEvidence('publication-review.json'),loadEvidence('qa-report.json'),
+        loadEvidence('composition-report.json'),loadEvidence('originality-report.json'),
+      ]);
+      const failures=validateReviewedMaster(video,{manifest,review,qa,composition,originality});
+      if(failures.length){console.warn(`worker reviewed-master blocked ${directory}: ${failures.join('; ')}`);continue;}
+      const thumb=await readFile(join(base,'thumbnail.jpg'));
       const videoPath=`reviewed-masters/${manifest.key}/video.mp4`;
       const thumbPath=`reviewed-masters/${manifest.key}/thumbnail.jpg`;
       const [storedVideo,storedThumb]=await Promise.all([storage.info(videoPath),storage.info(thumbPath)]);

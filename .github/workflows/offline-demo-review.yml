@@ -1,0 +1,63 @@
+name: Verify offline browser demo and render draft
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'episodes/webmcp-confirmation-v2/**'
+      - '.github/workflows/offline-demo-review.yml'
+permissions:
+  contents: write
+concurrency:
+  group: offline-demo-review
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local rendering dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip install numpy==2.2.6 pillow==11.3.0
+          npm install --no-save --package-lock=false playwright@1.55.1
+          npx playwright install --with-deps chromium --only-shell
+      - name: Execute and capture browser demo
+        run: |
+          node episodes/webmcp-confirmation-v2/test-demo.cjs
+          node episodes/webmcp-confirmation-v2/capture-demo.cjs
+      - name: Render from existing audio without speech model or networking
+        run: |
+          draft=deploy/creator-os/reviewed-masters/staged/webmcp-confirmation-v2-20261009
+          python episodes/webmcp-confirmation-v2/render.py --output "$draft"
+          python tools/video_qa.py "$draft/video.mp4" --report "$draft/qa-report.json"
+          cp episodes/webmcp-confirmation-v2/browser-proof.json "$draft/browser-proof.json"
+          cp episodes/webmcp-confirmation-v2/browser-proof.jpg "$draft/browser-proof.jpg"
+          cp episodes/webmcp-confirmation-v2/README.md "$draft/README.md"
+          cp episodes/webmcp-confirmation-v2/publication-review.json "$draft/publication-review.json"
+          cp episodes/webmcp-confirmation-v2/render.py "$draft/renderer.py"
+          rm "$draft/silent.mp4"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tested-browser-demo-draft
+          path: |
+            episodes/webmcp-confirmation-v2/browser-*
+            deploy/creator-os/reviewed-masters/staged/webmcp-confirmation-v2-20261009/
+          retention-days: 7
+      - name: Save evidence as unapproved draft
+        run: |
+          git config user.name automationopsai-bot
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add deploy/creator-os/reviewed-masters/staged/webmcp-confirmation-v2-20261009
+          git diff --cached --quiet && exit 0
+          git commit -m 'Preserve tested browser replay and review evidence [skip ci]'
+          git pull --rebase origin main
+          git push

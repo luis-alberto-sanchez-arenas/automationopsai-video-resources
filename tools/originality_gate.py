@@ -11,6 +11,7 @@ Exit 0 means pass; exit 2 means publication must be blocked.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -165,9 +166,14 @@ def main() -> int:
     history: list[dict[str, Any]] = []
     if args.history and args.history.exists():
         paths = sorted(args.history.rglob("originality-manifest.json"))
-        history = [load(path) for path in paths if path.resolve() != args.current.resolve()]
+        # Drafts are not prior published work and cannot supply originality evidence.
+        history = [load(path) for path in paths if path.resolve() != args.current.resolve()
+                   and not {'staged', 'inbox'}.intersection(path.relative_to(args.history).parts)]
 
     result = evaluate(current, history)
+    video = args.current.parent / 'video.mp4'
+    if video.exists():
+        result['videoSha256'] = hashlib.sha256(video.read_bytes()).hexdigest()
     rendered = json.dumps(result, ensure_ascii=False, indent=2)
     print(rendered)
     if args.report:

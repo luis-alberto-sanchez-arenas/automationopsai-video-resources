@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -103,6 +104,7 @@ def main() -> int:
 
     report = {
         "video": str(args.video),
+        "videoSha256": hashlib.sha256(args.video.read_bytes()).hexdigest(),
         "passed": not failures,
         "failures": failures,
         "technical": {

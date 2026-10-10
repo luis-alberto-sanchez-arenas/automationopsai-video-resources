@@ -1,0 +1,23 @@
+const {chromium}=require('playwright');
+const fs=require('node:fs');
+const path=require('node:path');
+(async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||undefined,args:['--disable-background-networking']});
+ const page=await browser.newPage({viewport:{width:1080,height:1600}});
+ await page.route('**/*',route=>route.request().url().startsWith('file:')?route.continue():route.abort());
+ await page.goto('file://'+path.join(__dirname,'demo.html'));
+ await page.locator('#run').click();
+ if(await page.locator('#charged').textContent()!=='$480')throw Error('Unsafe example mismatch');
+ await page.locator('#reset').click();
+ await page.locator('#hint').check();
+ await page.locator('#run').click();
+ if(await page.locator('#status').textContent()!=='CONFIRMATION REQUIRED')throw Error('Missing confirmation');
+ await page.locator('#reject').click();
+ if(await page.locator('#charged').textContent()!=='$0')throw Error('Rejection did not stop effect');
+ const proof=await page.evaluate(()=>window.testAll());
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
+ if(overflow)throw Error('Horizontal overflow');
+ await page.screenshot({path:path.join(__dirname,'browser-proof.jpg'),fullPage:true});
+ fs.writeFileSync(path.join(__dirname,'browser-proof.json'),JSON.stringify({...proof,interactionTestPassed:true,horizontalOverflow:false},null,2)+'\n');
+ await browser.close();console.log('PASS: actual browser clicks, four assertions, no horizontal overflow');
+})().catch(e=>{console.error(e);process.exit(1)});
