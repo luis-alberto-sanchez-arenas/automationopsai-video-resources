@@ -2,6 +2,7 @@ import express from 'express';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { db, initPlatform, requireAdmin, serveBlob, storage } from './platform.js';
+import {validateReviewedMaster} from './master-review.js';
 import { advanceEditorial, getEditorialStatus } from './editorial.js';
 import {
   channelAnalytics,channelSummary,demandContext,engagementCommitments,ensurePublishJob,ensureReviewedPublishJob,listJobs,oauthComplete,oauthStart,
@@ -255,6 +256,12 @@ app.post('/api/reviewed/jobs',requireAdmin,async(req,res,next)=>{
     const cleanKey=reviewedKey(key);
     if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
+    const evidence=req.body.evidence;
+    if(!evidence?.manifest||!evidence?.review||!evidence?.qa||!evidence?.composition||!evidence?.originality)return res.status(422).json({error:'Required master evidence is incomplete'});
+    const video=await storage.read(videoPath);
+    if(!video)return res.status(422).json({error:'Reviewed video is missing'});
+    const failures=validateReviewedMaster(video,evidence);
+    if(failures.length)return res.status(422).json({error:'Master review failed',failures});
     const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath,publishAt:publishAt?new Date(String(publishAt)).toISOString():undefined};
     const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});
@@ -283,6 +290,12 @@ app.post('/api/automation-upload/jobs',requireAutomationUpload,async(req,res,nex
     const cleanKey=reviewedKey(key);
     if(!title||!description||!videoPath||!thumbnailPath)throw new Error('Reviewed job metadata is incomplete');
     if(videoPath!==`reviewed/${USER_ID}/${cleanKey}/video.mp4`||!String(thumbnailPath).startsWith(`reviewed/${USER_ID}/${cleanKey}/thumbnail.`))throw new Error('Reviewed asset paths do not match the job key');
+    const evidence=req.body.evidence;
+    if(!evidence?.manifest||!evidence?.review||!evidence?.qa||!evidence?.composition||!evidence?.originality)return res.status(422).json({error:'Required master evidence is incomplete'});
+    const video=await storage.read(videoPath);
+    if(!video)return res.status(422).json({error:'Reviewed video is missing'});
+    const failures=validateReviewedMaster(video,evidence);
+    if(failures.length)return res.status(422).json({error:'Master review failed',failures});
     const spec={key:cleanKey,title:String(title),description:String(description),tags:Array.isArray(tags)?tags.map(String):[],transcript:String(transcript||''),preparedStoragePath:videoPath,thumbnailStoragePath:thumbnailPath,publishAt:publishAt?new Date(String(publishAt)).toISOString():undefined};
     const job=await ensureReviewedPublishJob(USER_ID,spec);await ensureReviewedTikTokJob(USER_ID,spec);
     res.json({ok:true,id:job.id,status:job.status});

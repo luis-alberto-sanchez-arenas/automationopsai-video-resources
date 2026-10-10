@@ -116,6 +116,11 @@ function signature(path: string, expires: number) {
 }
 
 export const storage = {
+  async read(path: string) {
+    await initPlatform();
+    const result=await pool.query('SELECT content FROM app_blobs WHERE path=$1',[path]);
+    return result.rows[0]?.content as Buffer|undefined;
+  },
   async write(entries: Array<{path:string; content:Buffer; contentType:string}>) {
     await initPlatform();
     for (const entry of entries) {
