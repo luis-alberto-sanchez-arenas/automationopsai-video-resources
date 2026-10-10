@@ -1,4 +1,15 @@
 {
   "approved": false,
-  "status": "awaiting-evidence-and-audiovisual-review"
+  "stageOnly": true,
+  "videoSha256": "c484d9fe7c4831a03905b58484feff143ea3a01b431f17c609f1e8106c8b232c",
+  "technicalQaPassed": true,
+  "contactSheetReviewed": true,
+  "markFramesReviewed": true,
+  "textAndEffectMasksPassed": true,
+  "originalityPassed": true,
+  "copyrightAndLicensesReviewed": true,
+  "voiceNaturalnessReviewed": false,
+  "perceptualSyncReviewed": false,
+  "status": "blocked-awaiting-listening-review",
+  "blocker": "A listening-capable reviewer must approve naturalness, pronunciation, pacing, and perceptual voice/action synchronization for this exact video SHA before promotion to bundled."
 }
