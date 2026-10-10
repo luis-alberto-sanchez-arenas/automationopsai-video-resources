@@ -1,0 +1,670 @@
+{
+  "method": "PocketSphinx 5.0.4 forced acoustic alignment, 10ms frames",
+  "sourceSha256": "f453ef783e0ca65e728cbafa2d645618a9dfcff07f84c01964685ac7c25f5149",
+  "note": "Acoustic estimates; manual listening review remains required.",
+  "segments": [
+    {
+      "index": 0,
+      "text": "An AI agent wrote a clean endpoint. But one hidden loop turned one request into one hundred and one database queries.",
+      "start": 0.0,
+      "end": 7.8227,
+      "words": [
+        {
+          "word": "an",
+          "start": 0.0,
+          "end": 0.12
+        },
+        {
+          "word": "ai",
+          "start": 0.12,
+          "end": 0.6
+        },
+        {
+          "word": "agent",
+          "start": 0.6,
+          "end": 1.17
+        },
+        {
+          "word": "wrote",
+          "start": 1.17,
+          "end": 1.33
+        },
+        {
+          "word": "a",
+          "start": 1.33,
+          "end": 1.38
+        },
+        {
+          "word": "clean",
+          "start": 1.38,
+          "end": 1.77
+        },
+        {
+          "word": "endpoint",
+          "start": 1.77,
+          "end": 2.41
+        },
+        {
+          "word": "but",
+          "start": 2.83,
+          "end": 2.95
+        },
+        {
+          "word": "one",
+          "start": 2.95,
+          "end": 3.27
+        },
+        {
+          "word": "hidden",
+          "start": 3.27,
+          "end": 3.59
+        },
+        {
+          "word": "loop",
+          "start": 3.59,
+          "end": 3.91
+        },
+        {
+          "word": "turned",
+          "start": 3.91,
+          "end": 4.33
+        },
+        {
+          "word": "one",
+          "start": 4.33,
+          "end": 4.58
+        },
+        {
+          "word": "request",
+          "start": 4.58,
+          "end": 5.1
+        },
+        {
+          "word": "into",
+          "start": 5.1,
+          "end": 5.29
+        },
+        {
+          "word": "one",
+          "start": 5.29,
+          "end": 5.5
+        },
+        {
+          "word": "hundred",
+          "start": 5.5,
+          "end": 6.14
+        },
+        {
+          "word": "and",
+          "start": 6.14,
+          "end": 6.29
+        },
+        {
+          "word": "one",
+          "start": 6.29,
+          "end": 6.56
+        },
+        {
+          "word": "database",
+          "start": 6.56,
+          "end": 7.09
+        },
+        {
+          "word": "queries",
+          "start": 7.09,
+          "end": 7.64
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "text": "Here is the real test. Load one hundred orders, then fetch each customer inside the loop. The counter reaches one hundred and one.",
+      "start": 7.9427,
+      "end": 15.926,
+      "words": [
+        {
+          "word": "here",
+          "start": 7.943,
+          "end": 8.283
+        },
+        {
+          "word": "is",
+          "start": 8.283,
+          "end": 8.463
+        },
+        {
+          "word": "the",
+          "start": 8.463,
+          "end": 8.563
+        },
+        {
+          "word": "real",
+          "start": 8.563,
+          "end": 8.913
+        },
+        {
+          "word": "test",
+          "start": 8.913,
+          "end": 9.423
+        },
+        {
+          "word": "load",
+          "start": 9.773,
+          "end": 10.023
+        },
+        {
+          "word": "one",
+          "start": 10.023,
+          "end": 10.233
+        },
+        {
+          "word": "hundred",
+          "start": 10.233,
+          "end": 10.533
+        },
+        {
+          "word": "orders",
+          "start": 10.533,
+          "end": 11.043
+        },
+        {
+          "word": "then",
+          "start": 11.043,
+          "end": 11.413
+        },
+        {
+          "word": "fetch",
+          "start": 11.413,
+          "end": 11.733
+        },
+        {
+          "word": "each",
+          "start": 11.733,
+          "end": 11.923
+        },
+        {
+          "word": "customer",
+          "start": 11.923,
+          "end": 12.433
+        },
+        {
+          "word": "inside",
+          "start": 12.433,
+          "end": 12.903
+        },
+        {
+          "word": "the",
+          "start": 12.903,
+          "end": 12.963
+        },
+        {
+          "word": "loop",
+          "start": 12.963,
+          "end": 13.263
+        },
+        {
+          "word": "the",
+          "start": 13.743,
+          "end": 13.803
+        },
+        {
+          "word": "counter",
+          "start": 13.803,
+          "end": 14.253
+        },
+        {
+          "word": "reaches",
+          "start": 14.253,
+          "end": 14.673
+        },
+        {
+          "word": "one",
+          "start": 14.673,
+          "end": 14.893
+        },
+        {
+          "word": "hundred",
+          "start": 14.893,
+          "end": 15.323
+        },
+        {
+          "word": "and",
+          "start": 15.323,
+          "end": 15.443
+        },
+        {
+          "word": "one",
+          "start": 15.443,
+          "end": 15.753
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "text": "Keep the exact data. Replace the loop with one join, so the database resolves every customer in the same query.",
+      "start": 16.046,
+      "end": 22.9527,
+      "words": [
+        {
+          "word": "keep",
+          "start": 16.046,
+          "end": 16.296
+        },
+        {
+          "word": "the",
+          "start": 16.296,
+          "end": 16.406
+        },
+        {
+          "word": "exact",
+          "start": 16.406,
+          "end": 16.876
+        },
+        {
+          "word": "data",
+          "start": 16.876,
+          "end": 17.146
+        },
+        {
+          "word": "replace",
+          "start": 17.756,
+          "end": 18.166
+        },
+        {
+          "word": "the",
+          "start": 18.166,
+          "end": 18.256
+        },
+        {
+          "word": "loop",
+          "start": 18.256,
+          "end": 18.526
+        },
+        {
+          "word": "with",
+          "start": 18.526,
+          "end": 18.676
+        },
+        {
+          "word": "one",
+          "start": 18.676,
+          "end": 18.916
+        },
+        {
+          "word": "join",
+          "start": 18.916,
+          "end": 19.406
+        },
+        {
+          "word": "so",
+          "start": 19.626,
+          "end": 19.766
+        },
+        {
+          "word": "the",
+          "start": 19.766,
+          "end": 19.846
+        },
+        {
+          "word": "database",
+          "start": 19.846,
+          "end": 20.456
+        },
+        {
+          "word": "resolves",
+          "start": 20.456,
+          "end": 20.976
+        },
+        {
+          "word": "every",
+          "start": 20.976,
+          "end": 21.256
+        },
+        {
+          "word": "customer",
+          "start": 21.256,
+          "end": 21.786
+        },
+        {
+          "word": "in",
+          "start": 21.786,
+          "end": 21.916
+        },
+        {
+          "word": "the",
+          "start": 21.916,
+          "end": 21.976
+        },
+        {
+          "word": "same",
+          "start": 21.976,
+          "end": 22.296
+        },
+        {
+          "word": "query",
+          "start": 22.296,
+          "end": 22.766
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "text": "Run the benchmark again. One query returns the same one hundred rows, with the same total and the same first customer.",
+      "start": 23.0727,
+      "end": 30.504,
+      "words": [
+        {
+          "word": "run",
+          "start": 23.073,
+          "end": 23.303
+        },
+        {
+          "word": "the",
+          "start": 23.303,
+          "end": 23.413
+        },
+        {
+          "word": "benchmark",
+          "start": 23.413,
+          "end": 23.903
+        },
+        {
+          "word": "again",
+          "start": 23.903,
+          "end": 24.263
+        },
+        {
+          "word": "one",
+          "start": 24.803,
+          "end": 25.043
+        },
+        {
+          "word": "query",
+          "start": 25.043,
+          "end": 25.463
+        },
+        {
+          "word": "returns",
+          "start": 25.463,
+          "end": 25.953
+        },
+        {
+          "word": "the",
+          "start": 25.953,
+          "end": 26.023
+        },
+        {
+          "word": "same",
+          "start": 26.023,
+          "end": 26.393
+        },
+        {
+          "word": "one",
+          "start": 26.393,
+          "end": 26.583
+        },
+        {
+          "word": "hundred",
+          "start": 26.583,
+          "end": 26.953
+        },
+        {
+          "word": "rows",
+          "start": 26.953,
+          "end": 27.473
+        },
+        {
+          "word": "with",
+          "start": 27.713,
+          "end": 27.853
+        },
+        {
+          "word": "the",
+          "start": 27.853,
+          "end": 27.933
+        },
+        {
+          "word": "same",
+          "start": 27.933,
+          "end": 28.283
+        },
+        {
+          "word": "total",
+          "start": 28.283,
+          "end": 28.743
+        },
+        {
+          "word": "and",
+          "start": 28.863,
+          "end": 28.993
+        },
+        {
+          "word": "the",
+          "start": 28.993,
+          "end": 29.053
+        },
+        {
+          "word": "same",
+          "start": 29.053,
+          "end": 29.423
+        },
+        {
+          "word": "first",
+          "start": 29.423,
+          "end": 29.803
+        },
+        {
+          "word": "customer",
+          "start": 29.803,
+          "end": 30.323
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "text": "The regression test now rejects any implementation above two queries. The slow version fails. The joined version passes.",
+      "start": 30.624,
+      "end": 38.2433,
+      "words": [
+        {
+          "word": "the",
+          "start": 30.624,
+          "end": 30.724
+        },
+        {
+          "word": "regression",
+          "start": 30.724,
+          "end": 31.254
+        },
+        {
+          "word": "test",
+          "start": 31.254,
+          "end": 31.694
+        },
+        {
+          "word": "now",
+          "start": 31.694,
+          "end": 31.984
+        },
+        {
+          "word": "rejects",
+          "start": 31.984,
+          "end": 32.444
+        },
+        {
+          "word": "any",
+          "start": 32.444,
+          "end": 32.614
+        },
+        {
+          "word": "implementation",
+          "start": 32.614,
+          "end": 33.434
+        },
+        {
+          "word": "above",
+          "start": 33.434,
+          "end": 33.694
+        },
+        {
+          "word": "two",
+          "start": 33.694,
+          "end": 33.944
+        },
+        {
+          "word": "queries",
+          "start": 33.944,
+          "end": 34.504
+        },
+        {
+          "word": "the",
+          "start": 34.844,
+          "end": 34.914
+        },
+        {
+          "word": "slow",
+          "start": 34.914,
+          "end": 35.234
+        },
+        {
+          "word": "version",
+          "start": 35.234,
+          "end": 35.654
+        },
+        {
+          "word": "fails",
+          "start": 35.654,
+          "end": 36.154
+        },
+        {
+          "word": "the",
+          "start": 36.564,
+          "end": 36.634
+        },
+        {
+          "word": "joined",
+          "start": 36.634,
+          "end": 37.044
+        },
+        {
+          "word": "version",
+          "start": 37.044,
+          "end": 37.464
+        },
+        {
+          "word": "passes",
+          "start": 37.464,
+          "end": 38.064
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "text": "AI can draft code quickly. Production needs executable evidence: query count, result equality, and a performance budget in continuous integration.",
+      "start": 38.3633,
+      "end": 48.402,
+      "words": [
+        {
+          "word": "ai",
+          "start": 38.443,
+          "end": 38.913
+        },
+        {
+          "word": "can",
+          "start": 38.913,
+          "end": 39.103
+        },
+        {
+          "word": "draft",
+          "start": 39.103,
+          "end": 39.503
+        },
+        {
+          "word": "code",
+          "start": 39.503,
+          "end": 39.803
+        },
+        {
+          "word": "quickly",
+          "start": 39.803,
+          "end": 40.343
+        },
+        {
+          "word": "production",
+          "start": 40.783,
+          "end": 41.363
+        },
+        {
+          "word": "needs",
+          "start": 41.363,
+          "end": 41.653
+        },
+        {
+          "word": "executable",
+          "start": 41.653,
+          "end": 42.503
+        },
+        {
+          "word": "evidence",
+          "start": 42.503,
+          "end": 43.113
+        },
+        {
+          "word": "query",
+          "start": 43.463,
+          "end": 43.823
+        },
+        {
+          "word": "count",
+          "start": 43.823,
+          "end": 44.233
+        },
+        {
+          "word": "result",
+          "start": 44.433,
+          "end": 44.833
+        },
+        {
+          "word": "equality",
+          "start": 44.833,
+          "end": 45.393
+        },
+        {
+          "word": "and",
+          "start": 45.623,
+          "end": 45.753
+        },
+        {
+          "word": "a",
+          "start": 45.753,
+          "end": 45.793
+        },
+        {
+          "word": "performance",
+          "start": 45.793,
+          "end": 46.393
+        },
+        {
+          "word": "budget",
+          "start": 46.393,
+          "end": 46.813
+        },
+        {
+          "word": "in",
+          "start": 46.813,
+          "end": 46.943
+        },
+        {
+          "word": "continuous",
+          "start": 46.943,
+          "end": 47.523
+        },
+        {
+          "word": "integration",
+          "start": 47.523,
+          "end": 48.213
+        }
+      ]
+    }
+  ]
+}

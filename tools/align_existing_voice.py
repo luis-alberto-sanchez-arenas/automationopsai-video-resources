@@ -25,6 +25,7 @@ def align(video, timeline):
             words = re.findall(r"[a-z]+(?:'[a-z]+)?", text)
             decoder = Decoder(samprate=16000, lm=None, loglevel='ERROR')
             decoder.add_word('json', 'JH EY S AH N', update=True)
+            decoder.add_word('executable', 'EH K S AH K Y UW T AH B AH L', update=True)
             unknown = [word for word in words if not decoder.lookup_word(word)]
             if unknown:
                 raise ValueError(f'Unknown pronunciation: {unknown}')

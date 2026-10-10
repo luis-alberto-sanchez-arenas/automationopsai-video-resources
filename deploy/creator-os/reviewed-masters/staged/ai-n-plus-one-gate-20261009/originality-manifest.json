@@ -26,7 +26,7 @@
     "voiceLicenseCleared": true
   },
   "durationSeconds": 48.433333,
-  "proofSeconds": null,
-  "textCardSeconds": null,
-  "measurementStatus": "pending-timeline-review"
+  "proofSeconds": 38.2433,
+  "textCardSeconds": 0,
+  "measurementStatus": "measured from narration-led causal benchmark interval 0.0000-38.2433 seconds"
 }

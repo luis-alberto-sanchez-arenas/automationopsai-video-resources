@@ -1,4 +1,18 @@
 {
   "approved": false,
-  "status": "awaiting-evidence-and-audiovisual-review"
+  "stageOnly": true,
+  "videoSha256": "f453ef783e0ca65e728cbafa2d645618a9dfcff07f84c01964685ac7c25f5149",
+  "status": "blocked-awaiting-voice-listening-review",
+  "technicalQaPassed": true,
+  "contactSheetReviewed": true,
+  "markFramesReviewed": true,
+  "textAndEffectMaskReviewed": true,
+  "originalityReviewed": true,
+  "copyrightReviewed": true,
+  "acousticAlignmentPassed": true,
+  "syncReviewed": false,
+  "voiceNaturalnessReviewed": false,
+  "blockers": [
+    "A listening-capable reviewer must approve naturalness, pronunciation and perceptual voice/action synchrony for this exact video SHA-256"
+  ]
 }

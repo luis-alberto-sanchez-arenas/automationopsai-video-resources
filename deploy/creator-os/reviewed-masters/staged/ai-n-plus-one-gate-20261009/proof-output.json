@@ -1,0 +1,11 @@
+{
+  "fixture": "in-memory SQLite database with 100 customers and 100 orders",
+  "slowQueries": 101,
+  "fastQueries": 1,
+  "orders": 100,
+  "sameRows": true,
+  "sameTotal": true,
+  "firstCustomer": "Customer 001",
+  "queryBudget": 2,
+  "regressionAssertionsPassed": 5
+}

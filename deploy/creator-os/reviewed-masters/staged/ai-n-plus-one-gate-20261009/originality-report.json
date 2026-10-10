@@ -1,5 +1,5 @@
 {
-  "passed": false,
+  "passed": true,
   "limits": {
     "maxSceneOverlap": 0.35,
     "minProofRatio": 0.7,
@@ -13,19 +13,27 @@
     "required.primaryInteraction": true,
     "durationSeconds": 48.433333,
     "sceneSignatureCount": 7,
-    "proofRatio": 0.0,
+    "proofRatio": 0.7896,
     "textCardRatio": 0.0,
     "paletteCount": 6,
     "rights.commercialUseCleared": true,
     "rights.originalOrProceduralVisuals": true,
     "rights.voiceLicenseCleared": true
   },
-  "comparisons": [],
-  "failures": [
-    "Originality comparison unavailable: no historical manifests; review prior published videos before approval",
-    "Verifiable action density 0.0% is below 70%",
-    "proofSeconds requires a finite measured duration between zero and durationSeconds",
-    "textCardSeconds requires a finite measured duration between zero and durationSeconds"
+  "comparisons": [
+    {
+      "path": "deploy/creator-os/reviewed-masters/bundled/ai-accessibility-evidence-gate-20261005/originality-manifest.json",
+      "rendererReused": false,
+      "paletteAndBackgroundReused": false,
+      "sceneOverlap": 0.0
+    },
+    {
+      "path": "deploy/creator-os/reviewed-masters/bundled/ai-design-contrast-gate-20261007/originality-manifest.json",
+      "rendererReused": false,
+      "paletteAndBackgroundReused": false,
+      "sceneOverlap": 0.0
+    }
   ],
+  "failures": [],
   "videoSha256": "f453ef783e0ca65e728cbafa2d645618a9dfcff07f84c01964685ac7c25f5149"
 }
