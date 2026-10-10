@@ -2,5 +2,19 @@
   "approved": false,
   "stageOnly": true,
   "videoSha256": "e574570d0df43b1bf09fc2663f5dca5f69fc24d2fcb6f1e3a3f42161eeca15fc",
-  "status": "awaiting-timeline-and-audiovisual-review"
+  "status": "awaiting-human-listening-review",
+  "checks": {
+    "technicalQa": true,
+    "originalityGate": true,
+    "contactSheetReviewed": true,
+    "timelineMarkFramesReviewed": true,
+    "textSafeZones": true,
+    "effectExclusionMasks": true,
+    "copyrightAndLicensesDocumented": true,
+    "thumbnailClean": true,
+    "voiceNaturalnessReviewedByListening": false,
+    "pronunciationReviewedByListening": false,
+    "perceptualVoiceActionSyncReviewedByListening": false
+  },
+  "blockingReason": "A listening-capable reviewer has not yet confirmed Kokoro voice naturalness, pronunciation, and perceptual voice/action synchronization. Automated timing alignment alone is not sufficient for publication approval."
 }

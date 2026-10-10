@@ -181,9 +181,13 @@ def main():
  for no in range(n):
   fr=frame_at(no/FPS,timeline,proof); im,o,r=fr.finish(); overlap+=o; removed+=r; maxboxes=max(maxboxes,len(fr.boxes)); proc.stdin.write(im.tobytes())
   if no%(FPS*15)==0: samples.append(im.resize((320,180)))
-  if no==round(timeline[20]['start']*FPS): im.resize((1920,1080),Image.Resampling.LANCZOS).save(a.output/'thumbnail.jpg',quality=94)
  proc.stdin.close(); assert proc.wait()==0; final=a.output/'video.mp4'; subprocess.run(['ffmpeg','-y','-v','error','-i',str(a.output/'silent.mp4'),'-i',str(a.output/'voice.wav'),'-filter:a','highpass=f=70,acompressor=threshold=-20dB:ratio=2.2:attack=8:release=150,loudnorm=I=-16:TP=-1.5:LRA=7','-c:v','copy','-c:a','aac','-b:a','192k','-shortest','-movflags','+faststart',str(final)],check=True)
  sheet=Image.new('RGB',(1280,180*math.ceil(len(samples)/4)),C['bg'])
  for j,im in enumerate(samples): sheet.paste(im,((j%4)*320,(j//4)*180))
+ # Export a dedicated clean thumbnail from the failure scene. Captions and the
+ # timeline progress bar are intentionally omitted from packaging artwork.
+ thumb_t=timeline[20]['start']+2.0; thumb=Frame(thumb_t); background(thumb,thumb_t,4)
+ scene_failure(thumb,thumb_t,2.0,3,1.0); thumb_im,_,_=thumb.finish()
+ thumb_im.resize((1920,1080),Image.Resampling.LANCZOS).save(a.output/'thumbnail.jpg',quality=94)
  sheet.save(a.output/'contact-sheet.jpg',quality=90); report={'passed':overlap==0,'framesChecked':n,'intersectingPixels':int(overlap),'effectPixelsRemovedByTextMasks':int(removed),'textBoundsCheckedEveryFrame':True,'maxTextBoxesPerFrame':maxboxes,'videoSha256':hashlib.sha256(final.read_bytes()).hexdigest()}; (a.output/'effect-overlap-report.json').write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps({'duration':duration,'proof':proof,'composition':report}))
 if __name__=='__main__': main()

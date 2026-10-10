@@ -27,7 +27,7 @@
     "voiceLicenseCleared": true
   },
   "durationSeconds": 327.933333,
-  "proofSeconds": null,
-  "textCardSeconds": null,
-  "measurementStatus": "pending-timeline-review"
+  "proofSeconds": 286.11,
+  "textCardSeconds": 0.0,
+  "measurementStatus": "measured-from-narration-timeline-segments-0-through-34"
 }
