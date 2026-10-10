@@ -1,0 +1,21 @@
+{
+  "key": "ai-provenance-pixel-gate-20261010",
+  "revision": 1,
+  "stageOnly": true,
+  "renderer": "renderers/2026-10-10-ai-provenance-pixel-short.py",
+  "proofSource": "examples/ai-provenance-pixel-gate/proof.py",
+  "outputVideo": "video.mp4",
+  "title": "One Pixel Changed This AI Asset. The Gate Caught It #Shorts",
+  "description": "A reproducible local test records the SHA-256 fingerprint of a synthetic campaign asset, changes exactly one pixel, and reruns the verifier. The altered file is rejected before upload. A checksum provides tamper evidence; it does not prove authorship, licensing, or legal compliance.\n\nEU AI Act transparency overview: https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai\nPython hashlib reference: https://docs.python.org/3/library/hashlib.html\nReproducible resources: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources\nSynthetic Kokoro narration; original procedural visuals; no music or third-party footage.\n\n#AITransparency #ContentProvenance #AIGovernance #Shorts",
+  "tags": ["AI transparency", "content provenance", "synthetic media", "SHA-256", "AI governance", "tamper detection", "AI workflow", "Shorts"],
+  "transcript": "This image was generated for a campaign. Before publishing it, record the file hash and a small provenance manifest. The verifier reads the real PNG bytes. SHA-256 returns this fingerprint, and the release gate passes. Now change exactly one pixel. It looks identical at normal size, but the underlying file is no longer the approved asset. Run the same verifier again. The fingerprint changes, so the provenance gate rejects the altered file before upload. Zoom in and the evidence becomes visible: one green pixel at coordinate sixty-one, thirty-seven, against the orange mark. A checksum proves tampering, not authorship or legal compliance. Keep the original source, license, model note, and review record too.",
+  "originalityManifest": {
+    "rendererId": "synthetic-asset-forensic-macro-v1-20261010",
+    "palette": ["#0A0A0B", "#F8F1E1", "#FF7A00", "#B6FF5C", "#9B5DE5", "#00C2FF"],
+    "backgroundGrammar": "dark forensic light table with orbiting inspection rings, horizontal byte traces, and a magnified procedural pixel lattice",
+    "cameraModel": "continuous floating asset inspection followed by a causal macro dive into the changed coordinate and return to the verification rail",
+    "primaryInteraction": "hash an original procedural PNG, mutate one pixel, rehash the altered bytes, reject the mismatch, and inspect the changed coordinate",
+    "sceneSignatures": ["procedural-campaign-asset-scan", "sha256-fingerprint-types-on-byte-read", "single-pixel-file-mutation", "fingerprint-mismatch-release-reject", "macro-dive-to-coordinate-61-37", "tamper-evidence-scope-warning", "source-license-model-review-checklist"],
+    "rights": {"commercialUseCleared": true, "originalOrProceduralVisuals": true, "voiceLicenseCleared": true}
+  }
+}
