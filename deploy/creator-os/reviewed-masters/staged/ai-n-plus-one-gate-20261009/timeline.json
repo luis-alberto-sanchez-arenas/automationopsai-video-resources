@@ -1,0 +1,42 @@
+{
+  "voice": "Kokoro stock af_heart",
+  "segments": [
+    {
+      "index": 0,
+      "text": "An AI agent wrote a clean endpoint. But one hidden loop turned one request into one hundred and one database queries.",
+      "start": 0.0,
+      "end": 7.8227
+    },
+    {
+      "index": 1,
+      "text": "Here is the real test. Load one hundred orders, then fetch each customer inside the loop. The counter reaches one hundred and one.",
+      "start": 7.9427,
+      "end": 15.926
+    },
+    {
+      "index": 2,
+      "text": "Keep the exact data. Replace the loop with one join, so the database resolves every customer in the same query.",
+      "start": 16.046,
+      "end": 22.9527
+    },
+    {
+      "index": 3,
+      "text": "Run the benchmark again. One query returns the same one hundred rows, with the same total and the same first customer.",
+      "start": 23.0727,
+      "end": 30.504
+    },
+    {
+      "index": 4,
+      "text": "The regression test now rejects any implementation above two queries. The slow version fails. The joined version passes.",
+      "start": 30.624,
+      "end": 38.2433
+    },
+    {
+      "index": 5,
+      "text": "AI can draft code quickly. Production needs executable evidence: query count, result equality, and a performance budget in continuous integration.",
+      "start": 38.3633,
+      "end": 48.362
+    }
+  ],
+  "duration": 48.362
+}

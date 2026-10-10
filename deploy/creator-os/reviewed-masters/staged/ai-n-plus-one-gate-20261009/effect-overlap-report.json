@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "framesChecked": 1451,
+  "intersectingPixels": 0,
+  "effectPixelsRemovedByTextMasks": 103575,
+  "textBoundsCheckedEveryFrame": true,
+  "maxTextBoxesPerFrame": 16,
+  "videoSha256": "9c89f8b0303d9161f64d3f0d7029c454dd2d012478492fd4e4dc455d635396bc"
+}

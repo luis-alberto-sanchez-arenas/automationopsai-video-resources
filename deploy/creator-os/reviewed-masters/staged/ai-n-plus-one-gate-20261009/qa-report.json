@@ -1,0 +1,16 @@
+{
+  "video": "deploy/creator-os/reviewed-masters/staged/ai-n-plus-one-gate-20261009/video.mp4",
+  "videoSha256": "9c89f8b0303d9161f64d3f0d7029c454dd2d012478492fd4e4dc455d635396bc",
+  "passed": true,
+  "failures": [],
+  "technical": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30.0,
+    "duration": 48.366667,
+    "integrated_lufs": -16.0,
+    "true_peak_dbtp": -1.3,
+    "black_segments": [],
+    "long_silences": []
+  }
+}

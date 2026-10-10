@@ -1,0 +1,22 @@
+{
+  "key": "ai-n-plus-one-gate-20261009",
+  "revision": 3,
+  "renderer": "renderers/2026-10-09-ai-n-plus-one-short.py",
+  "outputVideo": "video.mp4",
+  "title": "AI Wrote 101 Database Queries. This Test Cut It to 1 #Shorts",
+  "description": "A reproducible SQLite test catches an N+1 query in AI-generated code: 100 orders trigger 101 SELECT statements. The same data then runs through one JOIN, returning the same 100 rows in one query. The result is a local simulation and benchmark, not a production database claim.\n\nOfficial SQLite query planner reference: https://sqlite.org/queryplanner.html\nReproducible resources: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources\nSynthetic Kokoro narration; original procedural visuals; no music or third-party footage.\n\n#AICoding #DatabasePerformance #SQLOptimization #Shorts",
+  "tags": [
+    "AI coding",
+    "N+1 query",
+    "database performance",
+    "SQL optimization",
+    "SQLite",
+    "code review",
+    "software testing",
+    "Shorts"
+  ],
+  "transcript": "An AI agent wrote a clean endpoint. But one hidden loop turned one request into one hundred and one database queries. Here is the real test. Load one hundred orders, then fetch each customer inside the loop. The counter reaches one hundred and one. Keep the exact data. Replace the loop with one join, so the database resolves every customer in the same query. Run the benchmark again. One query returns the same one hundred rows, with the same total and the same first customer. The regression test now rejects any implementation above two queries. The slow version fails. The joined version passes. AI can draft code quickly. Production needs executable evidence: query count, result equality, and a performance budget in continuous integration.",
+  "video": "video.mp4",
+  "thumbnail": "thumbnail.jpg",
+  "stageOnly": true
+}

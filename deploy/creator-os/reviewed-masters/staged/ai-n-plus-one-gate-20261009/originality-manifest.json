@@ -1,0 +1,32 @@
+{
+  "rendererId": "database-query-observatory-v1-20261009",
+  "palette": [
+    "#F4EFE5",
+    "#17233B",
+    "#185ADB",
+    "#F05D5E",
+    "#F6AE2D",
+    "#16856B"
+  ],
+  "backgroundGrammar": "warm database observatory with flowing query packets and measured trail density",
+  "cameraModel": "persistent endpoint workbench with causal code typing, query counter and terminal assertions",
+  "primaryInteraction": "execute N+1 loop, replace with JOIN, rerun equality and query-budget tests",
+  "sceneSignatures": [
+    "query-packet-rail",
+    "typed-n-plus-one-loop",
+    "counter-rises-to-101",
+    "join-source-replacement",
+    "counter-collapses-to-one",
+    "same-rows-assertion",
+    "two-query-budget-gate"
+  ],
+  "rights": {
+    "commercialUseCleared": true,
+    "originalOrProceduralVisuals": true,
+    "voiceLicenseCleared": true
+  },
+  "durationSeconds": 48.366667,
+  "proofSeconds": null,
+  "textCardSeconds": null,
+  "measurementStatus": "pending-timeline-review"
+}
