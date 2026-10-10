@@ -1,0 +1,9 @@
+{
+  "algorithm": "SHA-256",
+  "changedPixel": {"x": 61, "y": 37},
+  "originalHash": "f1c2e9b1115edb2f9e1562e55fb108111c8c2e14269f8d9966990c594c2540a9",
+  "alteredHash": "cceb582875ffbf1fd58afe5596bf693b9fc67a89cc7da449b78bd10f24271956",
+  "hashesMatch": false,
+  "gate": "REJECT",
+  "claim": "tamper evidence only; not identity or legal-compliance proof"
+}
