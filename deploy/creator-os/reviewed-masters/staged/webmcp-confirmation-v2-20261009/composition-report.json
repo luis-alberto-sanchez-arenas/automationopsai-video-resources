@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "framesChecked": 1689,
+  "intersectingPixels": 0,
+  "effectPixelsRemovedByTextMasks": 225148,
+  "method": "per-frame raster alpha times text exclusion mask",
+  "safeTextBounds": [
+    58,
+    132,
+    984,
+    1755
+  ],
+  "textBoundsCheckedEveryFrame": true,
+  "maxTextBoxesPerFrame": 23,
+  "videoSha256": "c040c79dfbeda4648cc617f101484815d10242ae825ba89d52acb34dfbc488a4"
+}

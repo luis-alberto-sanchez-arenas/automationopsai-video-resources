@@ -1,0 +1,10 @@
+{
+  "approved": false,
+  "stageOnly": true,
+  "status": "awaiting-audiovisual-and-originality-review",
+  "blockers": [
+    "Real browser replay requires visual review of generated frames",
+    "Voice naturalness and action synchrony have not been manually reviewed",
+    "Measured action density and comparison against prior published video designs remain incomplete"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "video": "deploy/creator-os/reviewed-masters/staged/webmcp-confirmation-v2-20261009/video.mp4",
+  "videoSha256": "c040c79dfbeda4648cc617f101484815d10242ae825ba89d52acb34dfbc488a4",
+  "passed": true,
+  "failures": [],
+  "technical": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30.0,
+    "duration": 56.3,
+    "integrated_lufs": -16.15,
+    "true_peak_dbtp": -1.38,
+    "black_segments": [],
+    "long_silences": []
+  }
+}

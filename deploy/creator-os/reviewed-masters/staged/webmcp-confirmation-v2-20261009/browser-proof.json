@@ -1,0 +1,31 @@
+{
+  "cases": {
+    "unsafe": {
+      "status": "BOOKED",
+      "executions": 1,
+      "bookings": 1,
+      "charged": 480
+    },
+    "waiting": {
+      "status": "CONFIRMATION REQUIRED",
+      "executions": 0,
+      "bookings": 0,
+      "charged": 0
+    },
+    "rejected": {
+      "status": "REJECTED",
+      "executions": 0,
+      "bookings": 0,
+      "charged": 0
+    },
+    "approved": {
+      "status": "BOOKED",
+      "executions": 1,
+      "bookings": 1,
+      "charged": 480
+    }
+  },
+  "assertionsPassed": 4,
+  "interactionTestPassed": true,
+  "horizontalOverflow": false
+}
