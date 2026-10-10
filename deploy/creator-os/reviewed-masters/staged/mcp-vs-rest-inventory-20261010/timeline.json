@@ -1,0 +1,246 @@
+{
+  "voice": "Kokoro stock af_heart",
+  "segments": [
+    {
+      "index": 0,
+      "text": "Should your AI agent call a normal API, or should you build an MCP server? We will run both against the same inventory tool.",
+      "start": 0.0,
+      "end": 8.282
+    },
+    {
+      "index": 1,
+      "text": "No slides and no vague architecture. This local lab executes fifty requests per path, rejects bad input, and records every protocol step.",
+      "start": 8.382,
+      "end": 17.8147
+    },
+    {
+      "index": 2,
+      "text": "The business question is simple: look up stock for SKU GPU zero one without allowing the agent to invent parameters or modify inventory.",
+      "start": 17.9147,
+      "end": 27.5093
+    },
+    {
+      "index": 3,
+      "text": "Both paths must return seven available units from warehouse MEX one. If the values differ, the test fails immediately.",
+      "start": 27.6093,
+      "end": 35.466
+    },
+    {
+      "index": 4,
+      "text": "We will compare behavior, not declare a universal winner. The latency numbers only describe this loopback machine and this tiny workload.",
+      "start": 35.566,
+      "end": 44.03
+    },
+    {
+      "index": 5,
+      "text": "Start with the shared core. One lookup function accepts exactly one string SKU, checks the allowlist, and returns a read-only record.",
+      "start": 44.13,
+      "end": 52.8713
+    },
+    {
+      "index": 6,
+      "text": "That boundary matters because transport should not duplicate business rules. REST and MCP call the same validated function.",
+      "start": 52.9713,
+      "end": 60.9007
+    },
+    {
+      "index": 7,
+      "text": "On the left, an HTTP client sends GET inventory with a SKU query parameter. The server answers JSON and status two hundred.",
+      "start": 61.0007,
+      "end": 69.9867
+    },
+    {
+      "index": 8,
+      "text": "On the right, an MCP client starts a standard session over standard input and output, then discovers the tool before calling it.",
+      "start": 70.0867,
+      "end": 77.9947
+    },
+    {
+      "index": 9,
+      "text": "The inventory database is a deterministic in-memory fixture, so every run is reproducible and costs no model or API credits.",
+      "start": 78.0947,
+      "end": 86.8987
+    },
+    {
+      "index": 10,
+      "text": "Build the REST path first. The handler accepts only slash inventory, reads the SKU, and sends an explicit JSON content type.",
+      "start": 86.9987,
+      "end": 95.6847
+    },
+    {
+      "index": 11,
+      "text": "A known SKU returns the record. A missing or unknown SKU returns status four hundred instead of a plausible invented answer.",
+      "start": 95.7847,
+      "end": 104.718
+    },
+    {
+      "index": 12,
+      "text": "Now execute the real request. The browser lane receives Edge GPU, seven available, and warehouse MEX one.",
+      "start": 104.818,
+      "end": 112.4673
+    },
+    {
+      "index": 13,
+      "text": "The response is useful to any fixed application because the endpoint and payload contract are already known by the client.",
+      "start": 112.5673,
+      "end": 119.8353
+    },
+    {
+      "index": 14,
+      "text": "REST stays the simpler choice when you own both sides and the caller does not need runtime tool discovery.",
+      "start": 119.9353,
+      "end": 126.1493
+    },
+    {
+      "index": 15,
+      "text": "Now build the MCP path. The first request is initialize, where client and server agree on a protocol version and capabilities.",
+      "start": 126.2493,
+      "end": 134.5413
+    },
+    {
+      "index": 16,
+      "text": "After the initialized notification, tools list exposes inventory lookup, its description, and a JSON input schema.",
+      "start": 134.6413,
+      "end": 142.4653
+    },
+    {
+      "index": 17,
+      "text": "The schema requires SKU, forbids extra properties, and documents the expected pattern before the agent attempts a call.",
+      "start": 142.5653,
+      "end": 150.26
+    },
+    {
+      "index": 18,
+      "text": "Tools call then carries the selected name and arguments. The server invokes the same lookup function used by REST.",
+      "start": 150.36,
+      "end": 157.6167
+    },
+    {
+      "index": 19,
+      "text": "The response includes structured content plus a text representation, and the measured stock matches the REST result exactly.",
+      "start": 157.7167,
+      "end": 165.3373
+    },
+    {
+      "index": 20,
+      "text": "Next comes the controlled failure. We send NOT A SKU and an extra property that the tool never declared.",
+      "start": 165.4373,
+      "end": 171.8533
+    },
+    {
+      "index": 21,
+      "text": "The REST endpoint returns four hundred. The MCP tool returns an error result. Neither path reaches an inventory mutation.",
+      "start": 171.9533,
+      "end": 180.4273
+    },
+    {
+      "index": 22,
+      "text": "This is the production lesson: discovery does not replace validation. The server must enforce the contract after every call.",
+      "start": 180.5273,
+      "end": 188.2433
+    },
+    {
+      "index": 23,
+      "text": "The trace shows initialize, tools list, and tools call in order. Skipping initialization would violate the session lifecycle.",
+      "start": 188.3433,
+      "end": 196.0593
+    },
+    {
+      "index": 24,
+      "text": "Because the tool is read only, the description says so, and the implementation has no update function to invoke accidentally.",
+      "start": 196.1593,
+      "end": 203.5353
+    },
+    {
+      "index": 25,
+      "text": "Now run fifty successful lookups through each path. Every response is compared field by field, not just by status.",
+      "start": 203.6353,
+      "end": 210.9447
+    },
+    {
+      "index": 26,
+      "text": "The local median appears on screen, but it is not an internet benchmark. Process startup, network distance, and payload size change the result.",
+      "start": 211.0447,
+      "end": 219.944
+    },
+    {
+      "index": 27,
+      "text": "What matters here is consistency: fifty REST results and fifty MCP results contain the same SKU, name, availability, and warehouse.",
+      "start": 220.044,
+      "end": 229.3487
+    },
+    {
+      "index": 28,
+      "text": "The proof also records the protocol version, discovered tool name, schema restriction, invalid input result, and benchmark scope.",
+      "start": 229.4487,
+      "end": 237.452
+    },
+    {
+      "index": 29,
+      "text": "That evidence can run in continuous integration without an LLM, so protocol regressions are caught before an agent sees the server.",
+      "start": 237.552,
+      "end": 245.868
+    },
+    {
+      "index": 30,
+      "text": "Add observability next. Every call gets a trace identifier, transport label, method, duration, result type, and validation outcome.",
+      "start": 245.968,
+      "end": 255.0567
+    },
+    {
+      "index": 31,
+      "text": "A dashboard can now separate client errors from server failures and detect a sudden rise in unknown SKU requests.",
+      "start": 255.1567,
+      "end": 262.5627
+    },
+    {
+      "index": 32,
+      "text": "For consequential tools, add authentication, authorization, rate limits, approval boundaries, and audit storage around the same core.",
+      "start": 262.6627,
+      "end": 270.8593
+    },
+    {
+      "index": 33,
+      "text": "For long operations, do not hold a tool call forever. Use a durable task pattern or your existing job queue and expose progress.",
+      "start": 270.9593,
+      "end": 279.1973
+    },
+    {
+      "index": 34,
+      "text": "The architecture remains testable because transport, policy, business logic, and side effects are separate layers.",
+      "start": 279.2973,
+      "end": 286.106
+    },
+    {
+      "index": 35,
+      "text": "Use REST for stable service contracts and ordinary application integration. It is direct, familiar, and easy to operate.",
+      "start": 286.206,
+      "end": 294.1367
+    },
+    {
+      "index": 36,
+      "text": "Use MCP when an agent must discover tools, negotiate capabilities, and call a standardized interface across different hosts.",
+      "start": 294.2367,
+      "end": 302.4433
+    },
+    {
+      "index": 37,
+      "text": "Do not wrap every endpoint in MCP. Publish a narrow, well-described tool surface that matches real agent decisions.",
+      "start": 302.5433,
+      "end": 310.5907
+    },
+    {
+      "index": 38,
+      "text": "The complete server, client, failure test, and evidence are reproducible in the repository with only the Python standard library.",
+      "start": 310.6907,
+      "end": 318.8233
+    },
+    {
+      "index": 39,
+      "text": "The final rule is simple: choose the interface from the caller contract, then prove validation, observability, and result equality before production.",
+      "start": 318.9233,
+      "end": 327.9093
+    }
+  ],
+  "duration": 327.9093
+}

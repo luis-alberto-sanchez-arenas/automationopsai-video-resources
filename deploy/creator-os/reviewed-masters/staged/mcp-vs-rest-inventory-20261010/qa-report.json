@@ -1,0 +1,16 @@
+{
+  "video": "deploy/creator-os/reviewed-masters/staged/mcp-vs-rest-inventory-20261010/video.mp4",
+  "videoSha256": "e574570d0df43b1bf09fc2663f5dca5f69fc24d2fcb6f1e3a3f42161eeca15fc",
+  "passed": true,
+  "failures": [],
+  "technical": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.0,
+    "duration": 327.933333,
+    "integrated_lufs": -16.13,
+    "true_peak_dbtp": -1.34,
+    "black_segments": [],
+    "long_silences": []
+  }
+}

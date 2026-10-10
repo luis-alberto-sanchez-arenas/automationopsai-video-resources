@@ -1,0 +1,26 @@
+{
+  "protocolVersion": "2025-11-25",
+  "mcpMethods": [
+    "initialize",
+    "tools/list",
+    "tools/call"
+  ],
+  "toolName": "inventory_lookup",
+  "schemaRejectsAdditionalProperties": true,
+  "restStatus": 200,
+  "sameResult": true,
+  "result": {
+    "sku": "GPU-01",
+    "name": "Edge GPU",
+    "available": 7,
+    "warehouse": "MEX-1"
+  },
+  "invalidRestStatus": 400,
+  "invalidMcpRejected": true,
+  "runsPerPath": 50,
+  "localMedianMs": {
+    "rest": 0.605,
+    "mcpStdio": 0.118
+  },
+  "benchmarkScope": "local loopback proof; not a universal transport ranking"
+}

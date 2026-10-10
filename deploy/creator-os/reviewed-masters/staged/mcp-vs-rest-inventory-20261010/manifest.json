@@ -1,0 +1,24 @@
+{
+  "key": "mcp-vs-rest-inventory-20261010",
+  "revision": 1,
+  "stageOnly": true,
+  "renderer": "renderers/2026-10-10-mcp-vs-rest-standard.py",
+  "proofSource": "examples/mcp-vs-rest-inventory/demo.py",
+  "serverSource": "examples/mcp-vs-rest-inventory/server.py",
+  "title": "MCP vs REST: Build the Same AI Tool and Test Every Failure",
+  "description": "A complete, reproducible comparison of REST and MCP using the same validated inventory lookup. We execute a real HTTP endpoint and a real MCP stdio session, inspect initialize → tools/list → tools/call, reject invalid arguments, compare 50 results per path, and add an observability trace. Local latency numbers are loopback measurements, not a universal transport ranking.\n\nMCP lifecycle specification: https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle\nOfficial MCP Python SDK: https://py.sdk.modelcontextprotocol.io/\nReproducible server, client and evidence: https://github.com/luis-alberto-sanchez-arenas/automationopsai-video-resources\nSynthetic Kokoro narration; original procedural visuals; no music or third-party footage.\n\n#ModelContextProtocol #AIAgents #APIDesign #SoftwareArchitecture",
+  "tags": [
+    "MCP vs REST",
+    "Model Context Protocol",
+    "AI agent tools",
+    "API design",
+    "JSON-RPC",
+    "MCP server",
+    "software architecture",
+    "AI engineering",
+    "observability",
+    "Python"
+  ],
+  "video": "video.mp4",
+  "thumbnail": "thumbnail.jpg"
+}
