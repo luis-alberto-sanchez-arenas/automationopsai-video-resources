@@ -59,7 +59,7 @@ def draw(t,timeline,proof):
  fr=Frame(t);d=fr.d;f=fr.f
  i=next((j for j,s in enumerate(timeline) if t<s['end']+.12),5);seg=timeline[i];p=ease((t-seg['start'])/max(.1,seg['end']-seg['start']))
  fr.text(30,57,'AI CODE REVIEW / DATABASE LAB',14,C['blue'],True)
- fr.text(30,91,'One endpoint. How many queries?',29,C['ink'],True)
+ fr.text(30,91,'One endpoint. How many queries?',24,C['ink'],True)
  # Physical data path: packets stream from request through the query counter into result rows.
  f.line((58,183,482,183),fill=C['blue'],width=4)
  for k in range(7):
@@ -96,7 +96,7 @@ def draw(t,timeline,proof):
   for j,s in enumerate(labels[:show]):fr.text(50,769+j*27,s,15,C['green'] if 'PASS' in s else C['paper'],True,True)
  # captions: measured segment time, 5-word windows
  words=seg['text'].split();active=min(len(words)-1,max(0,int(p*len(words))));group=words[(active//5)*5:(active//5)*5+5];rows=wrap(d,' '.join(group),ff(22,True),480)
- for j,row in enumerate(rows[:2]):fr.text(270,863+j*30,row,22,C['ink'],True,anchor='ma')
+ for j,row in enumerate(rows[:2]):fr.text(270,845+j*27,row,22,C['ink'],True,anchor='ma')
  d.rounded_rectangle((28,925,512,932),4,fill='#D6D0C5');d.rounded_rectangle((28,925,28+484*t/timeline[-1]['end'],932),4,fill=C['blue'])
  return fr
 def main():
