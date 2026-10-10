@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'deploy/creator-os/reviewed-masters/inbox-standard/**.json'
+      - '.github/workflows/build-reviewed-standard.yml'
 permissions:
   contents: write
 concurrency:
@@ -15,6 +16,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -40,6 +43,9 @@ jobs:
         run: |
           set -euo pipefail
           spec="$(git diff --name-only HEAD^ HEAD -- 'deploy/creator-os/reviewed-masters/inbox-standard/*.json' | tail -1)"
+          if test -z "$spec"; then
+            spec="$(find deploy/creator-os/reviewed-masters/inbox-standard -maxdepth 1 -name '*.json' -print | sort | tail -1)"
+          fi
           test -n "$spec"
           echo "path=$spec" >> "$GITHUB_OUTPUT"
       - name: Execute proof and render narration-first episode
