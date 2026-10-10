@@ -119,6 +119,6 @@ def main():
  sheet=Image.new('RGB',(270*4,480*math.ceil(len(samples)/4)),C['bg'])
  for j,im in enumerate(samples):sheet.paste(im,((j%4)*270,(j//4)*480))
  sheet.save(out/'contact-sheet.jpg',quality=90)
- report={'passed':overlap==0,'framesChecked':n,'intersectingPixels':int(overlap),'effectPixelsRemovedByTextMasks':int(removed),'textBoundsCheckedEveryFrame':True,'maxTextBoxesPerFrame':maxboxes,'videoSha256':hashlib.sha256(final.read_bytes()).hexdigest()};(out/'composition-report.json').write_text(json.dumps(report,indent=2)+'\n')
+ report={'passed':overlap==0,'framesChecked':n,'intersectingPixels':int(overlap),'effectPixelsRemovedByTextMasks':int(removed),'textBoundsCheckedEveryFrame':True,'maxTextBoxesPerFrame':maxboxes,'videoSha256':hashlib.sha256(final.read_bytes()).hexdigest()};(out/'effect-overlap-report.json').write_text(json.dumps(report,indent=2)+'\n')
  print(json.dumps({'duration':duration,'proof':proof,'composition':report}))
 if __name__=='__main__':main()
