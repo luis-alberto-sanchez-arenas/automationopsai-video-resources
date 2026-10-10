@@ -258,7 +258,7 @@ def word_marks(text: str, start: float, end: float):
     marks = []
     for word, weight in zip(words, weights):
         finish = cursor + (end-start)*weight/total
-        marks.append({"word": word, "start": round(cursor,4), "end": round(finish,4)})
+        marks.append({"word": word, "start": round(cursor,4), "end": round(finish,4), "estimated": True})
         cursor = finish
     return marks
 
@@ -332,7 +332,11 @@ def main():
         {"name":"primary-ui","x":24,"y":105,"w":492,"h":650},
         {"name":"captions","x":20,"y":775,"w":500,"h":165},
     ]
-    (out/"effect-overlap-report.json").write_text(json.dumps({"passed":True,"framesChecked":total_frames,"intersections":0,"exclusionMasks":exclusions},indent=2)+"\n")
+    (out/"effect-overlap-report.json").write_text(json.dumps({
+        "passed": False, "status": "not-measured", "framesChecked": 0,
+        "intersections": None, "exclusionMasks": exclusions,
+        "failures": ["Declared masks do not establish per-frame non-overlap; raster measurement is required."]
+    },indent=2)+"\n")
     print(json.dumps({"video":str(final),"duration":round(duration,3),"frames":total_frames}))
 
 if __name__ == "__main__":

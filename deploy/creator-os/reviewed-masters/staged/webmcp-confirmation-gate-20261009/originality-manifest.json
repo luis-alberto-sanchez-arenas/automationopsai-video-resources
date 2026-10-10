@@ -23,8 +23,9 @@
     "three-node structured-tool consequence enforcement path"
   ],
   "durationSeconds": 56.300000,
-  "proofSeconds": 46.166,
-  "textCardSeconds": 0,
+  "proofSeconds": null,
+  "textCardSeconds": null,
+  "measurementStatus": "pending-timeline-review",
   "rights": {
     "commercialUseCleared": true,
     "originalOrProceduralVisuals": true,

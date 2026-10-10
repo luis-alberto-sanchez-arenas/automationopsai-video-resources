@@ -1,5 +1,5 @@
 {
-  "passed": true,
+  "passed": false,
   "limits": {
     "maxSceneOverlap": 0.35,
     "minProofRatio": 0.7,
@@ -13,7 +13,7 @@
     "required.primaryInteraction": true,
     "durationSeconds": 56.3,
     "sceneSignatureCount": 9,
-    "proofRatio": 0.82,
+    "proofRatio": 0.0,
     "textCardRatio": 0.0,
     "paletteCount": 6,
     "rights.commercialUseCleared": true,
@@ -21,5 +21,10 @@
     "rights.voiceLicenseCleared": true
   },
   "comparisons": [],
-  "failures": []
+  "failures": [
+    "Originality comparison unavailable: no historical manifests; review prior published videos before approval",
+    "Verifiable action density 0.0% is below 70%",
+    "proofSeconds requires a finite measured duration between zero and durationSeconds",
+    "textCardSeconds requires a finite measured duration between zero and durationSeconds"
+  ]
 }

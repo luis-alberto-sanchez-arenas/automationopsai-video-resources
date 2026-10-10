@@ -35,8 +35,13 @@ async function importBundledReviewedMasters(){
     try{
       const base=join(root,directory);
       const manifest=JSON.parse(await readFile(join(base,'manifest.json'),'utf8')) as {
-        key:string;title:string;description:string;tags:string[];transcript:string;video:string;thumbnail:string;
+        key:string;title:string;description:string;tags:string[];transcript:string;video:string;thumbnail:string;stageOnly?:boolean;
       };
+      // A draft remains a draft even if it is accidentally copied into bundled.
+      if(manifest.stageOnly === true){
+        console.warn(`worker reviewed-master blocked ${directory}: stageOnly`);
+        continue;
+      }
       const video=await readFile(join(base,manifest.video));
       const thumb=await readFile(join(base,manifest.thumbnail));
       const videoPath=`reviewed-masters/${manifest.key}/video.mp4`;

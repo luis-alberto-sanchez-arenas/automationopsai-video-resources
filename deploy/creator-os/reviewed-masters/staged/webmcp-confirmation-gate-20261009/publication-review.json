@@ -1,0 +1,22 @@
+{
+  "approved": false,
+  "reviewedAt": "2026-10-10T00:12:00Z",
+  "status": "blocked-quality",
+  "technicalReportRetained": true,
+  "inspected": ["contact-sheet.jpg", "renderer.py", "originality-report.json", "effect-overlap-report.json"],
+  "blockers": [
+    "Effect non-overlap report was a hard-coded assertion, not a per-frame measurement.",
+    "Proof duration was assigned as duration * 0.82, not measured from reviewed actions.",
+    "Originality report compared against zero historical manifests.",
+    "Word timestamps are character-weight estimates, not actual word alignment.",
+    "Code is too small in the contact sheet to support comfortable mobile reading.",
+    "Demo is a custom client-policy simulation, not a native WebMCP browser execution; this distinction must appear on screen.",
+    "Voice naturalness and complete audiovisual synchronization remain unreviewed."
+  ],
+  "requiredNextSteps": [
+    "Redesign as a legible action-driven demonstration with actual event evidence.",
+    "Measure word alignment, effect intersections and proof intervals.",
+    "Review prior published videos and record genuine comparison evidence.",
+    "Complete voice and audiovisual review before promotion into bundled."
+  ]
+}

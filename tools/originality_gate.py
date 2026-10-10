@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -73,7 +74,18 @@ def evaluate(current: dict[str, Any], history: list[dict[str, Any]]) -> dict[str
             failures.append(f"Missing non-empty {key}")
 
     current_signatures = signatures(current)
-    duration = float(current.get("durationSeconds") or 0)
+    try:
+        duration = float(current.get("durationSeconds") or 0)
+    except (TypeError, ValueError):
+        duration = 0.0
+    if not math.isfinite(duration):
+        duration = 0.0
+    for key in ("proofSeconds", "textCardSeconds"):
+        value = current.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= duration:
+            failures.append(f"{key} requires a finite measured duration between zero and durationSeconds")
+    if not history:
+        failures.append("Originality comparison unavailable: no historical manifests; review prior published videos before approval")
     proof_ratio = ratio(current.get("proofSeconds"), duration)
     card_ratio = ratio(current.get("textCardSeconds"), duration)
     checks.update({

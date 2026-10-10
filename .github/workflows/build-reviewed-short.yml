@@ -50,7 +50,7 @@ jobs:
           spec="${{ steps.spec.outputs.path }}"
           renderer="$(jq -r .renderer "$spec")"
           key="$(jq -r .key "$spec")"
-          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
+          state=staged
           mkdir -p output
           python "$renderer" --model ~/.cache/automationopsai-kokoro/kokoro-v1.0.int8.onnx --voices ~/.cache/automationopsai-kokoro/voices-v1.0.bin --output output
           bundle="deploy/creator-os/reviewed-masters/$state/$key"
@@ -58,13 +58,13 @@ jobs:
           cp "output/$(jq -r .outputVideo "$spec")" "$bundle/video.mp4"
           cp output/thumbnail.jpg "$bundle/thumbnail.jpg"
           cp output/timeline.json "$bundle/timeline.json"
-          jq --arg video video.mp4 --arg thumbnail thumbnail.jpg '. + {video:$video,thumbnail:$thumbnail}' "$spec" > "$bundle/manifest.json"
+          jq --arg video video.mp4 --arg thumbnail thumbnail.jpg '. + {video:$video,thumbnail:$thumbnail,stageOnly:true}' "$spec" > "$bundle/manifest.json"
       - name: Validate technical quality
         run: |
           set -euo pipefail
           spec="${{ steps.spec.outputs.path }}"
           key="$(jq -r .key "$spec")"
-          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
+          state=staged
           video="deploy/creator-os/reviewed-masters/$state/$key/video.mp4"
           read width height fps duration < <(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate:format=duration -of json "$video" | python -c "import json,sys; d=json.load(sys.stdin); s=d['streams'][0]; n,m=map(int,s['r_frame_rate'].split('/')); print(s['width'],s['height'],n/m,float(d['format']['duration']))")
           test "$width" -eq 1080
@@ -93,21 +93,23 @@ jobs:
           set -euo pipefail
           spec="${{ steps.spec.outputs.path }}"
           key="$(jq -r .key "$spec")"
-          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
+          state=staged
           bundle="deploy/creator-os/reviewed-masters/$state/$key"
           video="$bundle/video.mp4"
           duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$video")"
           jq --argjson duration "$duration" \
-            '.originalityManifest + {durationSeconds:$duration,proofSeconds:($duration * 0.82),textCardSeconds:0}' \
+            '.originalityManifest + {durationSeconds:$duration,proofSeconds:null,textCardSeconds:null,measurementStatus:"pending-timeline-review"}' \
             "$spec" > "$bundle/originality-manifest.json"
           cp output/effect-overlap-report.json "$bundle/effect-overlap-report.json"
           cp "$(jq -r .renderer "$spec")" "$bundle/renderer.py"
-          cp examples/webmcp-confirmation-gate/demo.mjs "$bundle/demo.mjs"
-          node "$bundle/demo.mjs" | tee "$bundle/proof-output.txt"
+          # Do not substitute another episode's demonstration or invented proof duration.
+          # Narrative review must supply episode-specific evidence before promotion.
+          gate_exit=0
           python tools/originality_gate.py \
             --current "$bundle/originality-manifest.json" \
             --history deploy/creator-os/reviewed-masters \
-            --report "$bundle/originality-report.json"
+            --report "$bundle/originality-report.json" || gate_exit=$?
+          test "$gate_exit" -eq 0 -o "$gate_exit" -eq 2
           python tools/video_qa.py "$video" --report "$bundle/qa-report.json"
           ffmpeg -y -hide_banner -loglevel error -i "$video" \
             -vf "fps=1/5,scale=270:480,tile=4x3" -frames:v 1 "$bundle/contact-sheet.jpg"
@@ -123,17 +125,28 @@ jobs:
                   subprocess.run(['ffmpeg','-y','-hide_banner','-loglevel','error','-ss',str(t),'-i',video,'-frames:v','1','-q:v','2',target],check=True)
           PY
           test "$(jq -r .passed "$bundle/qa-report.json")" = true
-          test "$(jq -r .passed "$bundle/originality-report.json")" = true
-          test "$(jq -r .passed "$bundle/effect-overlap-report.json")" = true
-          jq 'del(.originalityManifest) + {video:"video.mp4",thumbnail:"thumbnail.jpg"}' "$spec" > "$bundle/manifest.json"
-      - name: Commit verified Short
+          jq -n '{approved:false,status:"awaiting-evidence-and-audiovisual-review"}' > "$bundle/publication-review.json"
+          jq 'del(.originalityManifest) + {video:"video.mp4",thumbnail:"thumbnail.jpg",stageOnly:true}' "$spec" > "$bundle/manifest.json"
+      - name: Preserve build evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-draft-and-diagnostics
+          path: |
+            output/
+            deploy/creator-os/reviewed-masters/staged/
+            loudness.log
+            gaps.log
+          retention-days: 7
+      - name: Commit staged draft, not publication approval
         run: |
           set -euo pipefail
           spec="${{ steps.spec.outputs.path }}"
           key="$(jq -r .key "$spec")"
-          state="$(jq -r 'if .stageOnly then "staged" else "bundled" end' "$spec")"
+          state=staged
           git config user.name automationopsai-bot
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add "deploy/creator-os/reviewed-masters/$state/$key"
-          git commit -m "Add verified public Short $key [skip ci]"
+          git diff --cached --quiet && exit 0
+          git commit -m "Save unapproved Short draft $key [skip ci]"
           git push

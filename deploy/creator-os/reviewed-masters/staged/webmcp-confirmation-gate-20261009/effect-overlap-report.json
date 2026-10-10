@@ -1,7 +1,9 @@
 {
-  "passed": true,
-  "framesChecked": 1693,
-  "intersections": 0,
+  "passed": false,
+  "status": "invalidated-unmeasured-assertion",
+  "framesChecked": 0,
+  "intersections": null,
+  "failures": ["Original report used hard-coded values rather than raster measurements; publication blocked."],
   "exclusionMasks": [
     {
       "name": "header",
