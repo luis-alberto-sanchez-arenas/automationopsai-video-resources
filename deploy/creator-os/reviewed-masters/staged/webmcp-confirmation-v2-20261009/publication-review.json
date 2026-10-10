@@ -1,10 +1,34 @@
 {
   "approved": false,
   "stageOnly": true,
-  "status": "awaiting-audiovisual-and-originality-review",
+  "videoSha256": "c040c79dfbeda4648cc617f101484815d10242ae825ba89d52acb34dfbc488a4",
+  "status": "rejected-visual-review",
+  "contactSheetReviewed": true,
+  "markFramesReviewed": false,
+  "syncReviewed": false,
+  "voiceNaturalnessReviewed": false,
+  "copyrightReviewed": false,
+  "originalityReviewed": false,
+  "findings": [
+    {
+      "code": "STATIC_DEMO_INTERVAL",
+      "fromSeconds": 37.214,
+      "toSeconds": 53.206,
+      "note": "One browser state persists for almost 16 seconds; narration subtitles do not count as causal action",
+      "durationSeconds": 15.992
+    },
+    {
+      "code": "MOBILE_READABILITY",
+      "note": "Browser interface is too small in the composed frame"
+    },
+    {
+      "code": "NARRATION_VISUAL_MISMATCH",
+      "note": "Narration refers to a JSON schema while source view shows the custom execution policy; this needs a visual correction"
+    }
+  ],
   "blockers": [
-    "Real browser replay requires visual review of generated frames",
-    "Voice naturalness and action synchrony have not been manually reviewed",
-    "Measured action density and comparison against prior published video designs remain incomplete"
+    "Causal action density has not been measured or demonstrated at 70%",
+    "No prior published originality manifests are available for comparison",
+    "Voice naturalness and audiovisual synchrony require review"
   ]
 }

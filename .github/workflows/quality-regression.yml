@@ -1,0 +1,39 @@
+name: Master quality and publishing schedule regressions
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/creator-os/backend/**'
+      - 'tools/originality_gate.py'
+      - 'tools/test_originality_gate.py'
+      - '.github/workflows/quality-regression.yml'
+  pull_request:
+    paths:
+      - 'deploy/creator-os/backend/**'
+      - 'tools/originality_gate.py'
+      - 'tools/test_originality_gate.py'
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+        working-directory: deploy/creator-os
+      - run: npm run typecheck
+        working-directory: deploy/creator-os
+      - name: Reject invalid evidence and reserve correct Mexico City slots
+        working-directory: deploy/creator-os
+        run: |
+          node --import tsx backend/master-review.test.ts
+          node --import tsx backend/production-schedule.test.ts
+      - name: Reject unmeasured originality evidence
+        run: python -m unittest discover -s tools -p test_originality_gate.py

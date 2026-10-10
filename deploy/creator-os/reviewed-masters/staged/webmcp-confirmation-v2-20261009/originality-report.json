@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "limits": {
+    "maxSceneOverlap": 0.35,
+    "minProofRatio": 0.7,
+    "maxTextCardRatio": 0.1,
+    "historyWindow": 10
+  },
+  "checks": {
+    "required.rendererId": true,
+    "required.backgroundGrammar": true,
+    "required.cameraModel": true,
+    "required.primaryInteraction": true,
+    "durationSeconds": 56.3,
+    "sceneSignatureCount": 7,
+    "proofRatio": 0.0,
+    "textCardRatio": 0.0,
+    "paletteCount": 5,
+    "rights.commercialUseCleared": true,
+    "rights.originalOrProceduralVisuals": true,
+    "rights.voiceLicenseCleared": true
+  },
+  "comparisons": [],
+  "failures": [
+    "Originality comparison unavailable: no historical manifests; review prior published videos before approval",
+    "Verifiable action density 0.0% is below 70%",
+    "proofSeconds requires a finite measured duration between zero and durationSeconds",
+    "textCardSeconds requires a finite measured duration between zero and durationSeconds"
+  ],
+  "videoSha256": "c040c79dfbeda4648cc617f101484815d10242ae825ba89d52acb34dfbc488a4"
+}

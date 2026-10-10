@@ -1,0 +1,35 @@
+{
+  "rendererId": "webmcp-tested-browser-replay-v2-20261009",
+  "layoutId": "portrait-local-browser-plus-client-source",
+  "palette": [
+    "#211733",
+    "#FAF3E8",
+    "#EC743F",
+    "#AC8BE8",
+    "#DBEA8D"
+  ],
+  "backgroundGrammar": "plum browser viewport with cream local test interface",
+  "cameraModel": "fixed viewport; no continuous camera yet",
+  "primaryInteraction": "real browser Run / annotation checkbox / Reject / four tests",
+  "sceneSignatures": [
+    "local-book-trip-ready",
+    "unmarked-booking-480",
+    "client-enforcement-source",
+    "consequential-checkbox-enabled",
+    "browser-confirmation-required",
+    "rejected-no-execution",
+    "four-browser-policy-tests"
+  ],
+  "durationSeconds": 56.3,
+  "proofSeconds": null,
+  "textCardSeconds": null,
+  "measurementStatus": "blocked-by-visual-review",
+  "rights": {
+    "commercialUseCleared": true,
+    "originalOrProceduralVisuals": true,
+    "voiceLicenseCleared": true,
+    "voice": "existing Kokoro stock af_heart; Apache 2.0 weights",
+    "visuals": "own code, browser simulation and procedural UI",
+    "font": "DejaVu permissive license"
+  }
+}

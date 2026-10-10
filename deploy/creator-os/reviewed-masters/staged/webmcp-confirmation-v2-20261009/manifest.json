@@ -1,0 +1,19 @@
+{
+  "key": "webmcp-confirmation-v2-20261009",
+  "stageOnly": true,
+  "format": "short",
+  "video": "video.mp4",
+  "thumbnail": "thumbnail.jpg",
+  "title": "WebMCP Consequence Hint: Test the Client Before a Charge #Shorts",
+  "description": "A reproducible local browser simulation compares an unmarked fictional $480 booking with a client that requires human confirmation. Rejecting creates zero executions and zero charges. This is a custom policy demo, not a native WebMCP recording or a real purchase. WebMCP remains experimental; an annotation does not enforce authorization by itself.\n\nOfficial reference: https://developer.chrome.com/docs/ai/webmcp/imperative-api\nSynthetic stock Kokoro narration. Original project visuals; no music or third-party footage.\n\n#WebMCP #AIAgentSecurity #ToolCalling #Shorts",
+  "tags": [
+    "WebMCP",
+    "AI agent security",
+    "tool calling",
+    "human confirmation",
+    "client policy",
+    "browser automation",
+    "consequentialHint"
+  ],
+  "transcript": "A browser agent is one click away from spending four hundred eighty dollars. Watch the same booking run twice. First, the page exposes a Web M C P tool with a JSON schema, but the action is not marked consequential. The client calls book trip. Route Mexico City to San Francisco. Result: booked. One charge created. Now change one annotation: consequential hint, true. This tells compatible agents and browsers the action has real-world impact. Run the identical input again. This time the client stops before execution and returns confirmation required. Reject the prompt. Zero bookings. Zero charges. The side effect never runs. Web M C P is still a proposed standard and Chrome origin trial, so enforce the policy in your client too. Expose structured tools, label consequences, and test the stop path before an agent touches production."
+}
