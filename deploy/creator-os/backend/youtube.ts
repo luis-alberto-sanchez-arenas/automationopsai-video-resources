@@ -2,6 +2,7 @@ import {
   createCipheriv,createDecipheriv,createHash,createHmac,randomBytes,timingSafeEqual,
 } from 'node:crypto';
 import { db, storage, type Stored } from './platform.js';
+import { nextProductionSlot } from './production-schedule.js';
 import { EDITORIAL_PREFIX, getEditorialStatus, markPublished, type EditorialContext, type PublishSpec } from './editorial.js';
 
 const TOKEN_TABLE='youtube_tokens_v2';
@@ -26,51 +27,9 @@ export type PublishJob={
 export type ReviewedPublishSpec={
   key:string;title:string;description:string;tags:string[];transcript:string;
   preparedStoragePath:string;thumbnailStoragePath:string;
-  publishAt?:string;
+  publishAt?:string;format?:'short'|'standard';
 };
 
-const PRODUCTION_SLOTS=[6,11,15,22] as const;
-function zonedParts(date:Date,timeZone:string){
-  const parts=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date);
-  const get=(type:string)=>Number(parts.find(x=>x.type===type)?.value||0);
-  return {year:get('year'),month:get('month'),day:get('day'),hour:get('hour'),minute:get('minute'),second:get('second')};
-}
-function zonedLocalToUtc(year:number,month:number,day:number,hour:number,minute:number,timeZone:string){
-  let guess=Date.UTC(year,month-1,day,hour,minute,0);
-  for(let i=0;i<2;i++){
-    const p=zonedParts(new Date(guess),timeZone);
-    const represented=Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second);
-    guess-=represented-guess;
-  }
-  return new Date(guess);
-}
-function nextProductionSlot(existing:PublishJob[]){
-  const timeZone=process.env.SCHEDULE_TIMEZONE||'America/Mexico_City';
-  const now=new Date(),local=zonedParts(now,timeZone);
-  const occupied=new Set(existing.map(x=>x.publishAt).filter(Boolean).map(x=>new Date(x as string).toISOString()));
-  const todayJobs=existing.filter(x=>{
-    if(!x.publishAt)return false;
-    const p=zonedParts(new Date(x.publishAt),timeZone);
-    return p.year===local.year&&p.month===local.month&&p.day===local.day;
-  });
-  const missedToday=PRODUCTION_SLOTS
-    .map(hour=>zonedLocalToUtc(local.year,local.month,local.day,hour,0,timeZone))
-    .filter(x=>x.getTime()<now.getTime()-5*60_000);
-  if(missedToday.length>todayJobs.length){
-    return new Date(Date.now()+10*60_000).toISOString();
-  }
-  for(let dayOffset=0;dayOffset<8;dayOffset++){
-    const base=new Date(Date.UTC(local.year,local.month-1,local.day+dayOffset,12,0,0));
-    const bp=zonedParts(base,timeZone);
-    for(const hour of PRODUCTION_SLOTS){
-      const candidate=zonedLocalToUtc(bp.year,bp.month,bp.day,hour,0,timeZone);
-      if(candidate.getTime()<Date.now()+5*60_000)continue;
-      const iso=candidate.toISOString();
-      if(!occupied.has(iso))return iso;
-    }
-  }
-  return new Date(Date.now()+10*60_000).toISOString();
-}
 
 function origin(){return (process.env.PUBLIC_ORIGIN||'http://localhost:3000').replace(/\/$/,'');}
 function redirectUri(){return `${origin()}/api/oauth/callback`;}
@@ -259,7 +218,7 @@ export async function ensurePublishJob(userId:string,spec?:PublishSpec){
   const {items}=await db.list<PublishJob>(JOB_TABLE,{filter:{userId},limit:5000});
   if(items.some(x=>x.automationKey===spec.automationKey))return;
   const t=new Date().toISOString();
-  const publishAt=nextProductionSlot(items);
+  const publishAt=nextProductionSlot(items,/short/i.test(spec.title)||/short/i.test(spec.automationKey)?'short':'standard');
   const metadata=optimizeMetadata(spec.title,spec.description,spec.tags,/short/i.test(spec.title)||/short/i.test(spec.automationKey));
   const record:PublishJob={
     userId,automationKey:spec.automationKey,title:metadata.title,description:metadata.description,tags:metadata.tags,
@@ -283,7 +242,7 @@ export async function ensureReviewedPublishJob(userId:string,spec:ReviewedPublis
     userId,automationKey,title:metadata.title,description:metadata.description,tags:metadata.tags,
     privacyStatus:'private',targetPrivacyStatus:'public',preparedStoragePath:spec.preparedStoragePath,
     thumbnailStoragePath:spec.thumbnailStoragePath,transcript:spec.transcript.slice(0,20000),status:'pending',
-    uploadedBytes:0,retryCount:0,thumbnailStatus:'pending',publishAt:spec.publishAt,createdAt:t,updatedAt:t,
+    uploadedBytes:0,retryCount:0,thumbnailStatus:'pending',publishAt:spec.publishAt||nextProductionSlot(items,spec.format||(/short/i.test(spec.title)||/short/i.test(spec.key)?'short':'standard')),createdAt:t,updatedAt:t,
   };
   const [id]=await db.add(JOB_TABLE,[record]);return {...record,id};
 }

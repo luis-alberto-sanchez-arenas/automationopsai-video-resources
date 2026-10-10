@@ -32,12 +32,15 @@ async function importBundledReviewedMasters(){
   let directories:string[]=[];
   try{directories=await readdir(root);}catch{return [];}
   const imported:string[]=[];
+  const existingKeys=new Set((await listJobs(USER_ID)).map(job=>job.automationKey));
   for(const directory of directories){
     try{
       const base=join(root,directory);
       const manifest=JSON.parse(await readFile(join(base,'manifest.json'),'utf8')) as {
         key:string;title:string;description:string;tags:string[];transcript:string;video:string;thumbnail:string;stageOnly?:boolean;
       };
+      // Already imported jobs are managed by the publisher; do not reread released assets.
+      if(existingKeys.has(`reviewed-${manifest.key}`))continue;
       // A draft remains a draft even if it is accidentally copied into bundled.
       if(manifest.stageOnly === true){
         console.warn(`worker reviewed-master blocked ${directory}: stageOnly`);
@@ -62,6 +65,7 @@ async function importBundledReviewedMasters(){
       await ensureReviewedPublishJob(USER_ID,{
         key:manifest.key,title:manifest.title,description:manifest.description,tags:manifest.tags,
         transcript:manifest.transcript,preparedStoragePath:videoPath,thumbnailStoragePath:thumbPath,
+        format:qa.technical.height>qa.technical.width?'short':'standard',
       });
       imported.push(manifest.key);
     }catch(error){
