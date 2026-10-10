@@ -92,8 +92,11 @@ def draw(t,timeline,proof):
  if i>=3:
   d.rounded_rectangle((28,748,512,845),16,fill='#17233B')
   labels=[f"queries {proof['slowQueries']} → {proof['fastQueries']}",f"rows {proof['orders']}  equality PASS",'budget <= 2  PASS']
-  show=1 if i==3 else 3
-  for j,s in enumerate(labels[:show]):fr.text(50,769+j*27,s,15,C['green'] if 'PASS' in s else C['paper'],True,True)
+  show=1 if i==3 else max(1,min(3,1+int(p*3))) if i==4 else 3
+  active=-1 if i<5 else min(2,int(p*3))
+  for j,s in enumerate(labels[:show]):
+   if j==active:d.rounded_rectangle((42,760+j*27,480,786+j*27),7,outline=C['gold'],width=2)
+   fr.text(50,769+j*27,s,15,C['green'] if 'PASS' in s else C['paper'],True,True)
  # captions: measured segment time, 5-word windows
  words=seg['text'].split();active=min(len(words)-1,max(0,int(p*len(words))));group=words[(active//5)*5:(active//5)*5+5];rows=wrap(d,' '.join(group),ff(22,True),480)
  for j,row in enumerate(rows[:2]):fr.text(270,845+j*27,row,22,C['ink'],True,anchor='ma')
